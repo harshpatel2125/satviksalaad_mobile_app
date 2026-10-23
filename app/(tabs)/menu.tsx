@@ -1,0 +1,324 @@
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import {
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Text } from '@/components/ui/text';
+import { EmptyState } from '@/components/ui/empty-state';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
+
+import { MenuSkeleton } from '@/components/skeletons/menu-skeleton';
+import { MealCard } from '@/components/screens/menu/meal-card';
+import { FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
+import { useQueryFocusRefetch } from '@/hooks/useQueryFocusRefetch';
+import { useTheme } from '@/hooks/use-theme';
+import { menuApi } from '@/lib/api';
+import { readMenuCache, writeMenuCache } from '@/lib/home-cache';
+import { optimizedImageUrls } from '@/lib/image-url';
+import { asyncPersister, CACHE_TTL } from '@/lib/query-client';
+import type { MenuMeal, NutritionFlags } from '@/types/api';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Category = 'salad' | 'fruit';
+
+interface Meal {
+  id: string;
+  name: string;
+  category: Category;
+  kcal: number | null;
+  protein: number | null;
+  fiber: number | null;
+  carbs: number | null;
+  fat: number | null;
+  imageUrl: string | null;
+  description: string | null;
+  ingredients: string[];
+}
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const TABS: { id: Category; emoji: string; label: string }[] = [
+  { id: 'salad', emoji: '🥗', label: 'Salad Bowl' },
+  { id: 'fruit', emoji: '🍎', label: 'Fruit Bowl' },
+];
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
+
+export default function MenuScreen() {
+  const { colors, fonts } = useTheme();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+
+  const [activeTab, setActiveTab] = useState<Category>('salad');
+
+  // Synchronous MMKV read before first render — shows menu instantly on second+ opens
+  const [cachedMenu, setCachedMenu] = useState(() => readMenuCache());
+  // Only play skeleton/FadeIn animations on first install (no cache)
+  const hadNoCache = React.useRef(cachedMenu === null);
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['menu'],
+    queryFn: menuApi.get,
+    staleTime: CACHE_TTL.menu,
+    persister: asyncPersister.persisterFn,
+  });
+  useQueryFocusRefetch(['menu']);
+
+  // Write MMKV cache when API responds
+  React.useEffect(() => {
+    if (!data?.data) return;
+    const next = {
+      meals: data.data.meals,
+      showFruits: data.data.showFruits,
+      nutritionFlags: data.data.nutritionFlags,
+    };
+    writeMenuCache(next);
+    setCachedMenu(next);
+  }, [data]);
+
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  async function handleManualRefresh() {
+    setIsManualRefreshing(true);
+    await refetch();
+    setIsManualRefreshing(false);
+  }
+
+  // Server data takes priority; MMKV cache fills in before first API response
+  const rawMeals = useMemo(
+    () => data?.data?.meals ?? cachedMenu?.meals ?? [],
+    [data?.data?.meals, cachedMenu?.meals],
+  );
+  const showFruits: boolean   = data?.data?.showFruits    ?? cachedMenu?.showFruits    ?? false;
+  const nutritionFlags: NutritionFlags = data?.data?.nutritionFlags ?? cachedMenu?.nutritionFlags ?? {
+    calories: true,
+    protein: true,
+    fiber: false,
+    carbs: true,
+    fat: true,
+  };
+
+  // Skeleton only on first install (no cache). Second+ opens: instant content.
+  const showSkeleton = cachedMenu === null && isLoading;
+
+  const meals = useMemo<Meal[]>(() =>
+    rawMeals.map((m: MenuMeal) => ({
+      id: m.id,
+      name: m.name,
+      category: (m.category === 'fruit' ? 'fruit' : 'salad') as Category,
+      kcal: m.calories,
+      protein: m.protein_g,
+      fiber: m.fiber_g,
+      carbs: m.carbs_g,
+      fat: m.fat_g,
+      imageUrl: m.image_url,
+      description: m.description ?? null,
+      ingredients: m.ingredients ?? [],
+    })),
+  [rawMeals]);
+
+  // Prefetch all meal images into expo-image's disk cache as soon as URLs are
+  // available — fires immediately from MMKV on second+ opens, or after the
+  // first API response on install. This ensures images are ready before the
+  // user scrolls.
+  React.useEffect(() => {
+    const urls = optimizedImageUrls(rawMeals.map((m: MenuMeal) => m.image_url));
+    if (urls.length > 0) {
+      Image.prefetch(urls)
+        .catch(() => { /* non-critical */ });
+    }
+  }, [rawMeals]);
+
+  const effectiveTab: Category = (!showFruits && activeTab === 'fruit') ? 'salad' : activeTab;
+  const visible = meals.filter(m => m.category === effectiveTab);
+
+  return (
+    <View style={[s.root, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          s.header,
+          {
+            paddingTop: insets.top + (Platform.OS === "android" ? 12 : 0),
+            backgroundColor: colors.background,
+          },
+        ]}
+      >
+        <View style={s.headerTop}>
+          <View>
+            <Text
+              style={[
+                s.eyebrow,
+                { color: colors.primary, fontFamily: fonts.bodySemibold },
+              ]}
+            >
+              100% Pure Veg · Fresh Daily
+            </Text>
+            <Text
+              style={[
+                s.title,
+                { color: colors.text, fontFamily: fonts.display },
+              ]}
+            >
+              Our Menu
+            </Text>
+          </View>
+          {showFruits ? (
+            <View
+              style={[
+                s.toggle,
+                {
+                  backgroundColor: colors.surface2,
+                },
+              ]}
+            >
+              {TABS.map((tab) => {
+                const active = activeTab === tab.id;
+                return (
+                  <TouchableOpacity
+                    key={tab.id}
+                    style={[
+                      s.toggleBtn,
+                      active && {
+                        backgroundColor: colors.primary,
+                        ...Shadows.sm,
+                      },
+                    ]}
+                    onPress={() => setActiveTab(tab.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        s.toggleText,
+                        {
+                          color: active ? "#fff" : colors.textMuted,
+                          fontFamily: active ? fonts.bodySemibold : fonts.body,
+                        },
+                      ]}
+                    >
+                      {tab.emoji} {tab.id === "salad" ? "Salad" : "Fruit"}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
+      </View>
+
+      {showSkeleton ? (
+        <Animated.View exiting={FadeOut.duration(200)} style={{ flex: 1 }}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <MenuSkeleton />
+          </ScrollView>
+        </Animated.View>
+      ) : (
+        <Animated.View
+          entering={hadNoCache.current
+            ? FadeIn.duration(350).withInitialValues({ transform: [{ translateY: 8 }] })
+            : undefined}
+          style={{ flex: 1 }}
+        >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[s.scroll, { paddingBottom: Spacing[5] }]}
+            refreshControl={
+              <RefreshControl
+                refreshing={isManualRefreshing}
+                onRefresh={() => void handleManualRefresh()}
+                tintColor={colors.primary}
+              />
+            }
+          >
+            {visible.length === 0 ? (
+              <EmptyState icon="leaf-outline" title="No meals yet" body="Check back soon!" />
+            ) : (
+              visible.map((meal) => (
+                <View key={meal.id} style={s.group}>
+                  <MealCard
+                    meal={meal}
+                    showCalories={nutritionFlags.calories}
+                    showProtein={nutritionFlags.protein}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/meal-detail",
+                        params: {
+                          id: meal.id,
+                          name: meal.name,
+                          imageUrl: meal.imageUrl ?? "",
+                          kcal: String(meal.kcal ?? 0),
+                          protein: String(meal.protein ?? 0),
+                          fiber: String(meal.fiber ?? 0),
+                          carbs: String(meal.carbs ?? 0),
+                          fat: String(meal.fat ?? 0),
+                          category: meal.category,
+                          description: meal.description ?? "",
+                          ingredients: meal.ingredients.join(","),
+                          showCalories: String(nutritionFlags.calories),
+                          showProtein: String(nutritionFlags.protein),
+                          showFiber: String(nutritionFlags.fiber),
+                          showCarbs: String(nutritionFlags.carbs),
+                          showFat: String(nutritionFlags.fat),
+                        },
+                      })
+                    }
+                  />
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </Animated.View>
+      )}
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  root: { flex: 1 },
+  header: {
+    paddingHorizontal: Spacing[5],
+    paddingBottom: 14,
+    borderBottomWidth: 0,
+  },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  eyebrow: {
+    fontSize: 11,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    marginBottom: 3,
+  },
+  title: {
+    fontSize: FontSize["1.5xl"],
+    fontWeight: FontWeight.semibold as "600",
+    letterSpacing: -0.5,
+  },
+  toggle: {
+    flexDirection: "row",
+    borderRadius: Radius.full,
+    padding: 3,
+    gap: 2,
+  },
+  toggleBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: Radius.full,
+  },
+  toggleText: { fontSize: FontSize.sm },
+  scroll: {
+    paddingTop: Spacing[4],
+    paddingHorizontal: Spacing[5],
+    gap: Spacing[5],
+  },
+  group: { gap: 10 },
+});
