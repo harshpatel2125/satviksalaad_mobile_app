@@ -138,7 +138,11 @@
       "reactCompiler": true
     },
     "extra": {
-      "router": {}
-    }
+      "router": {},
+      "eas": {
+        "projectId": "54b9f714-0179-4d04-8152-f579c5d5e4a9"
+      }
+    },
+    "owner": "infynixlabs"
   }
 }
