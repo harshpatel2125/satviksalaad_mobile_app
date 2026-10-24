@@ -37,7 +37,7 @@ export function QuickActions({
     {
       icon: hadSubscription ? 'refresh-outline' as const : 'add-circle-outline' as const,
       label: hadSubscription ? 'Renew' : 'Choose a plan',
-      sub: hadSubscription ? 'Book your next one' : 'Trial, weekly or monthly',
+      sub: hadSubscription ? 'Book your next one' : 'Weekly or monthly',
       onPress: onPlans,
     },
     {

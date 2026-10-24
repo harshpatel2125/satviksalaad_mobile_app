@@ -404,7 +404,7 @@ export function EditProfileSheet({
                     { color: colors.success, fontFamily: fonts.body },
                   ]}
                 >
-                  Number verified — tap Save to update
+                  Number verified. Tap Save to update.
                 </Text>
               ) : phoneChanged ? (
                 <Text
@@ -490,7 +490,7 @@ export function EditProfileSheet({
                   { color: colors.textMuted, fontFamily: fonts.body },
                 ]}
               >
-                {!isPhoneUser ? "Locked — this is your login email" : ""}
+                {!isPhoneUser ? "Locked: this is your login email" : ""}
               </Text>
             </View>
 

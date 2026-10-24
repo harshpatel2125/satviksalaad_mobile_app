@@ -38,7 +38,7 @@ import type { Plan, TimeSlot } from '@/types/api';
 import { DEFAULT_DELIVERY_DAYS } from '@/lib/delivery-rules';
 import { categoryInfo, countOf, formatDay } from '@/lib/subscription-view';
 
-/** The launch offer leads, then the largest plans, as on the website. */
+/** A trial leads, then the largest plans, as on the website. */
 function inShowOrder(plans: Plan[]): Plan[] {
   return [...plans].sort(
     (a, b) =>

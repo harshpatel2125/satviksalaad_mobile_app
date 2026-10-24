@@ -46,7 +46,7 @@ export async function downloadAndShareInvoice(invoiceId: string, invoiceNumber: 
     if (sharingAvailable) {
       await Sharing.shareAsync(localUri, {
         mimeType: "application/pdf",
-        dialogTitle: `${invoiceNumber} — Satvik Salaad invoice`,
+        dialogTitle: `${invoiceNumber} · Satvik Salaad invoice`,
         UTI: "com.adobe.pdf",
       });
     }

@@ -22,12 +22,10 @@ import type { Plan } from '@/types/api';
 
 // ─── Shared helpers (exported for use in main screen) ────────────────────────
 
-/** Same rule as the website: the plan's own label first, else the trial is the launch offer and the popular plan the best value. */
+/** The label the admin set on the plan, as on the website; an offer stands out in gold. */
 export function planBadge(plan: Plan): { label: string; tone: 'gold' | 'green' } | null {
-  if (plan.badge) return { label: plan.badge, tone: plan.is_trial || /offer/i.test(plan.badge) ? 'gold' : 'green' };
-  if (plan.is_trial) return { label: 'Launch offer', tone: 'gold' };
-  if (plan.is_popular) return { label: 'Best value', tone: 'green' };
-  return null;
+  if (!plan.badge) return null;
+  return { label: plan.badge, tone: plan.is_trial || /offer/i.test(plan.badge) ? 'gold' : 'green' };
 }
 
 function PlanBadge({ plan, onDark = false }: { plan: Plan; onDark?: boolean }) {
@@ -425,11 +423,11 @@ export function FruitPlanCard({ plan, isSelected, onSelect, unavailable, enterDe
               <Text style={[fruitStyles.planName, { color: amberDark, fontFamily: fonts.bodySemibold }]}>
                 {plan.name}
               </Text>
-              {plan.is_popular && (
+              {plan.badge ? (
                 <View style={[fruitStyles.badge, { backgroundColor: amber }]}>
-                  <Text style={[fruitStyles.badgeText, { fontFamily: fonts.bodySemibold }]}>Popular</Text>
+                  <Text style={[fruitStyles.badgeText, { fontFamily: fonts.bodySemibold }]}>{plan.badge}</Text>
                 </View>
-              )}
+              ) : null}
             </View>
             <Text style={[fruitStyles.meta, { color: amberMeta, fontFamily: fonts.body }]}>
               {countAndPrice(plan)}

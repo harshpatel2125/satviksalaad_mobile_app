@@ -35,7 +35,7 @@ function getCopy(kind: NetworkErrorKind): ErrorCopy {
       return {
         icon:  'time-outline',
         title: 'Taking longer than usual',
-        body:  'Things are a little slow right now. No action needed — we\'ll sort it out for you.',
+        body:  'Things are a little slow right now. No action needed, we\'ll sort it out for you.',
       };
     default:
       return {

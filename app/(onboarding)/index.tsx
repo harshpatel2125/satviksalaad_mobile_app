@@ -46,7 +46,7 @@ const SLIDES = [
     id: "subscription",
     tag: "YOUR SUBSCRIPTION",
     title: "Subscriptions that\nfit your week.",
-    body: "3-day trial, weekly or monthly. Nothing renews by itself.",
+    body: "Weekly or monthly. Nothing renews by itself.",
     cta: "Next →",
   },
   {
@@ -60,7 +60,7 @@ const SLIDES = [
     id: "schedule",
     tag: "YOUR SCHEDULE",
     title: "You pick the days\n& slot.",
-    body: "Mon to Sun — choose the days that suit you, for lunch or dinner. Change anytime.",
+    body: "Mon to Sun. Choose the days that suit you, for lunch or dinner, and change them anytime.",
     cta: "Let's go →",
   },
 ] as const;
@@ -261,7 +261,7 @@ function SkipArt({ isActive, colors }: { isActive: boolean; colors: ThemeColors 
       </View>
       <Animated.View style={badgeStyle}>
         <Text style={[artS.calBadgeText, { color: colors.textMuted }]}>
-          {'2 days skipped — '}
+          {'2 days skipped · '}
           <Text style={{ color: colors.primary }}>bowls moved to the end</Text>
         </Text>
       </Animated.View>

@@ -257,7 +257,7 @@ export function buildOrderMessage(lines: CartLine[], order: OrderDetails): strin
     '',
     ...lines.map((line) => {
       const amount = lineTotal(line);
-      return `${line.quantity} × ${line.name} — ${amount === null ? 'MRP' : rupees(amount)}`;
+      return `${line.quantity} × ${line.name}: ${amount === null ? 'MRP' : rupees(amount)}`;
     }),
     '',
     `Items total: ${hasMrp ? `${total} + MRP items` : total}`,
