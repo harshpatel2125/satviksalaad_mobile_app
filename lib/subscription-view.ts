@@ -63,7 +63,8 @@ export type UnitIcon = 'bowl' | 'cup' | 'leaf';
 
 /** The neutral picture for an item with no photo, by the word its category counts in. */
 export function unitIcon(unitSingular: string): UnitIcon {
-  const word = unitSingular.trim().toLowerCase();
+  // The last word decides, so "glass bottle" is a bottle.
+  const word = unitSingular.trim().toLowerCase().split(/\s+/).pop() ?? '';
   if (word === 'bowl') return 'bowl';
   if (word === 'bottle' || word === 'glass' || word === 'cup') return 'cup';
   return 'leaf';

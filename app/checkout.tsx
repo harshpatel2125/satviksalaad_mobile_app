@@ -101,10 +101,13 @@ export default function CheckoutScreen() {
   const [sheetVisible, setSheetVisible] = useState(false);
 
   const dietaryOptions = useDietaryOptions();
-  const styleChoices: { key: PlanStyle; label: string }[] = [
-    { key: 'regular', label: 'Regular' },
-    ...dietaryOptions.flatMap((o) => (isStyleKey(o.key) ? [{ key: o.key, label: o.label }] : [])),
-  ];
+  const styleOptions = dietaryOptions.flatMap((o) => (isStyleKey(o.key) ? [{ key: o.key as PlanStyle, label: o.label }] : []));
+  // Only a plan that sells the choice offers it; a high-protein plan shows its one style.
+  const styleChoices: { key: PlanStyle; label: string }[] = plan?.style_choice
+    ? styleOptions
+    : plan?.is_high_protein
+      ? styleOptions.filter((o) => o.key === 'high_protein')
+      : [];
   const cookingOptions = dietaryOptions.filter((o) => !isStyleKey(o.key));
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [selectedDietaryKeys, setSelectedDietaryKeys] = useState<string[]>([]);
@@ -113,8 +116,9 @@ export default function CheckoutScreen() {
     setSelectedDietaryKeys((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
-  // A high-protein plan has no other style.
-  const planStyle: PlanStyle = plan?.is_high_protein ? 'high_protein' : chosenStyle;
+  const planStyle: PlanStyle = plan?.style_choice
+    ? chosenStyle === 'regular' ? 'high_protein' : chosenStyle
+    : plan?.is_high_protein ? 'high_protein' : 'regular';
 
   const { data: preview, isLoading: previewLoading } = useQuery({
     queryKey: ['subscription-preview', planId, preferredDays.join(','), deliverySlot],
@@ -263,7 +267,7 @@ export default function CheckoutScreen() {
     let orderId = '';
     let finalAmountPaise = 0;
     const dietaryPreferences = [
-      ...(planStyle === 'regular' ? [] : [planStyle]),
+      ...(plan.style_choice && planStyle !== 'regular' ? [planStyle] : []),
       ...selectedDietaryKeys,
     ];
     try {
@@ -954,7 +958,7 @@ export default function CheckoutScreen() {
           )}
         </View>
 
-        {styleChoices.length > 1 && (
+        {styleChoices.length > 0 && (
           <View
             style={[
               styles.card,
@@ -972,7 +976,7 @@ export default function CheckoutScreen() {
             <View style={styles.dietaryRow}>
               {styleChoices.map((opt) => {
                 const active = planStyle === opt.key;
-                const locked = !!plan?.is_high_protein && !active;
+                const locked = !plan?.style_choice && !active;
                 return (
                   <TouchableOpacity
                     key={opt.key}
@@ -984,7 +988,7 @@ export default function CheckoutScreen() {
                       locked && { opacity: 0.45 },
                     ]}
                     onPress={() => setChosenStyle(opt.key)}
-                    disabled={!!plan?.is_high_protein}
+                    disabled={!plan?.style_choice}
                     hitSlop={{ top: 4, bottom: 4, left: 2, right: 2 }}
                     activeOpacity={0.75}
                   >

@@ -256,6 +256,10 @@ export interface Plan {
   is_popular?: boolean;
   is_trial: boolean;
   is_high_protein: boolean;
+  /** A short label for the plan card, e.g. "Launch offer". */
+  badge?: string | null;
+  /** The customer picks High-protein or Disease-friendly at checkout. */
+  style_choice?: boolean;
   grace_days: number;
 }
 
