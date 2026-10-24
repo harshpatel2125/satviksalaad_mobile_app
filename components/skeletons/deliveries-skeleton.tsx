@@ -9,84 +9,47 @@ export function DeliveriesSkeleton() {
   const { colors } = useTheme();
   return (
     <View style={s.root}>
-      <Skeleton width={160} height={34} radius={8} />
-
       <View style={[s.card, { backgroundColor: colors.primaryTint, borderColor: 'transparent' }]}>
-        <View style={s.walletRow}>
-          <View style={s.col}>
-            <Skeleton width={54} height={11} radius={4} />
-            <View style={s.walletCountRow}>
-              <Skeleton width={32} height={30} radius={6} />
-              <Skeleton width={80} height={14} radius={4} />
-            </View>
-          </View>
-          <Skeleton width={82} height={34} radius={Radius.md} />
-        </View>
+        <Skeleton width={140} height={16} radius={4} />
+        <Skeleton width={220} height={14} radius={4} style={{ marginTop: 6 }} />
       </View>
 
       <View style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={s.rowBetween}>
-          <View style={s.col}>
-            <Skeleton width={130} height={11} radius={4} />
-            <Skeleton width={130} height={16} radius={4} style={{ marginTop: 6 }} />
-            <Skeleton width={200} height={12} radius={4} style={{ marginTop: 5 }} />
-          </View>
-          <Skeleton width={55} height={22} radius={Radius.md} />
+          <Skeleton width={190} height={18} radius={4} />
+          <Skeleton width={84} height={44} radius={Radius.md} />
         </View>
-      </View>
-
-      <View style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={s.rowBetween}>
-          <View style={s.col}>
-            <Skeleton width={200} height={11} radius={4} />
-            <Skeleton width={110} height={12} radius={4} style={{ marginTop: 5 }} />
-          </View>
-          <Skeleton width={34} height={22} radius={Radius.md} />
-        </View>
-        <View style={s.dayPills}>
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} height={36} radius={10} style={{ flex: 1 }} />
-          ))}
-        </View>
-      </View>
-
-      <View style={s.sHead}>
-        <Skeleton width={180} height={11} radius={4} />
-      </View>
-
-      <View style={[s.rowsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        {[0, 1, 2, 3].map((i) => (
-          <View
-            key={i}
-            style={[
-              s.delivRow,
-              i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderLight },
-            ]}>
-            <Skeleton width={44} height={50} radius={10} />
-            <View style={{ flex: 1, gap: 8 }}>
-              <Skeleton width="65%" height={14} radius={4} />
-              <Skeleton width="45%" height={12} radius={4} />
-            </View>
-            <Skeleton width={16} height={16} radius={8} />
+        {[0, 1, 2].map((i) => (
+          <View key={i} style={s.line}>
+            <Skeleton width={18} height={18} radius={9} />
+            <Skeleton width={i === 2 ? '70%' : '50%'} height={14} radius={4} />
           </View>
         ))}
       </View>
+
+      <Skeleton width={120} height={20} radius={4} style={{ marginTop: Spacing[2] }} />
+
+      {[0, 1].map((day) => (
+        <View key={day} style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Skeleton width={110} height={18} radius={4} />
+          <View style={s.item}>
+            <Skeleton width={48} height={48} radius={Radius.md} />
+            <View style={{ flex: 1, gap: 6 }}>
+              <Skeleton width="60%" height={15} radius={4} />
+              <Skeleton width="40%" height={13} radius={4} />
+            </View>
+          </View>
+          <Skeleton width="100%" height={48} radius={Radius.full} style={{ marginTop: Spacing[3] }} />
+        </View>
+      ))}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  root:          { paddingHorizontal: Spacing[5], paddingTop: Spacing[4], gap: Spacing[4] },
-  card:          { borderRadius: 16, borderWidth: 1, padding: Spacing[4] },
-  walletRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  walletCountRow:{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 4 },
-  col:           {},
-  rowBetween:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  dayPills:      { flexDirection: 'row', gap: 5, marginTop: 12 },
-  sHead:         { marginBottom: Spacing[1] },
-  rowsCard:      { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
-  delivRow:      {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: Spacing[4], paddingVertical: Spacing[3], gap: Spacing[3],
-  },
+  root: { paddingHorizontal: Spacing[5], gap: Spacing[3] },
+  card: { borderRadius: 16, borderWidth: 1, padding: Spacing[4] },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  line: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2.5], marginTop: Spacing[2.5] },
+  item: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], marginTop: Spacing[3] },
 });

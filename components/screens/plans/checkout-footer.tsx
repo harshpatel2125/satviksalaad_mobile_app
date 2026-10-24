@@ -7,7 +7,8 @@ import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface CheckoutFooterProps {
-  selectedMealCount: number;
+  /** "6 bowls" in the plan's own unit words. */
+  count: string;
   selectedDaysCount: number;
   totalRs: number;
   canCheckout: boolean;
@@ -16,7 +17,7 @@ interface CheckoutFooterProps {
 }
 
 export function CheckoutFooter({
-  selectedMealCount,
+  count,
   selectedDaysCount,
   totalRs,
   canCheckout,
@@ -34,7 +35,7 @@ export function CheckoutFooter({
             { color: colors.textMuted, fontFamily: fonts.body },
           ]}
         >
-          {selectedMealCount} meals · {selectedDaysCount}×/week
+          {count} · {selectedDaysCount}×/week
         </Text>
         <Text
           style={[
@@ -80,8 +81,9 @@ const footerStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: Spacing[3],
   },
-  leftCol: { gap: 2 },
+  leftCol: { gap: 2, flexShrink: 1 },
   detail: { fontSize: FontSize.xs },
   price: { fontSize: FontSize["2xl"], letterSpacing: -0.5 },
   btn: {
@@ -90,6 +92,7 @@ const footerStyles = StyleSheet.create({
     gap: Spacing[2],
     paddingHorizontal: Spacing[5],
     paddingVertical: Spacing[3.25],
+    minHeight: 48,
     borderRadius: Radius.full,
   },
   btnText: { fontSize: FontSize.base },

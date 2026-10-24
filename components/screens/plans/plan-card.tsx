@@ -17,13 +17,14 @@ import Animated, {
 
 import { Brand, FontSize, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { DEFAULT_UNITS, countOf } from '@/lib/subscription-view';
 import type { Plan } from '@/types/api';
 
 // ─── Shared helpers (exported for use in main screen) ────────────────────────
 
 /** Same rule as the website: the trial is the launch offer, the popular plan the best value. */
 export function planBadge(plan: Plan): { label: string; tone: 'gold' | 'green' } | null {
-  if (/trial/i.test(plan.slug ?? plan.name)) return { label: 'Launch offer', tone: 'gold' };
+  if (plan.is_trial) return { label: 'Launch offer', tone: 'gold' };
   if (plan.is_popular) return { label: 'Best value', tone: 'green' };
   return null;
 }
@@ -57,22 +58,39 @@ const badgeStyles = StyleSheet.create({
   text: { fontSize: 10, letterSpacing: 0.8 },
 });
 
-
-export function pricePerMeal(plan: Plan): number {
-  return plan.price_per_meal_paise ?? Math.round(plan.price_paise / plan.total_meals);
+export function pricePerBowl(plan: Plan): number {
+  return plan.price_per_bowl_paise ?? Math.round(plan.price_paise / Math.max(1, plan.bowls_count));
 }
 
-// The server refuses an order with more extra meals than this.
-const MAX_EXTRA_MEALS = 20;
-
-function canAddMeal(plan: Plan, mealCount: number): boolean {
-  return mealCount < plan.total_meals + MAX_EXTRA_MEALS;
+/** "6 bowls · ₹230/bowl" in the plan's own unit words. */
+function countAndPrice(plan: Plan): string {
+  const unit = plan.unit ?? DEFAULT_UNITS;
+  return `${countOf(plan.bowls_count, unit)} · ₹${Math.round(pricePerBowl(plan) / 100)}/${unit.singular}`;
 }
 
-export function totalFor(plan: Plan, mealCount: number): number {
-  const extra = Math.max(0, mealCount - plan.total_meals);
-  return plan.price_paise + extra * pricePerMeal(plan);
+const FALLBACK_FEATURES = ['Fresh daily', '100% pure veg', 'Skip any day before its cutoff'];
+
+function UnavailableNote({ text, onDark = false }: { text: string; onDark?: boolean }) {
+  const { colors, fonts } = useTheme();
+  return (
+    <View style={unavailableStyles.row}>
+      <Ionicons name="lock-closed-outline" size={12} color={onDark ? 'rgba(255,255,255,0.85)' : colors.textMuted} />
+      <Text
+        style={[
+          unavailableStyles.text,
+          { color: onDark ? 'rgba(255,255,255,0.85)' : colors.textMuted, fontFamily: fonts.bodyMedium },
+        ]}
+      >
+        {text}
+      </Text>
+    </View>
+  );
 }
+
+const unavailableStyles = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+  text: { fontSize: FontSize.xs, flexShrink: 1 },
+});
 
 // ─── Animated Press Card wrapper ─────────────────────────────────────────────
 
@@ -81,11 +99,13 @@ export function AnimatedCard({
   style,
   children,
   enterDelay = 0,
+  disabled = false,
 }: {
   onPress: () => void;
   style?: ViewStyle;
   children: React.ReactNode;
   enterDelay?: number;
+  disabled?: boolean;
 }) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
@@ -101,6 +121,8 @@ export function AnimatedCard({
           onPressIn={() => { scale.value = withSpring(0.975, { damping: 20, stiffness: 300 }); }}
           onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 200 }); }}
           onPress={onPress}
+          disabled={disabled}
+          style={disabled ? { opacity: 0.55 } : undefined}
           activeOpacity={1}>
           {children}
         </TouchableOpacity>
@@ -109,28 +131,23 @@ export function AnimatedCard({
   );
 }
 
-// ─── Hero Plan Card (Monthly Salad) ──────────────────────────────────────────
+// ─── Hero Plan Card ──────────────────────────────────────────────────────────
 
 const BRAND_HERO = Brand.forest;
 
-export function HeroPlanCard({
-  plan,
-  isSelected,
-  mealCount,
-  onSelect,
-  onMealCountChange,
-  enterDelay,
-}: {
+interface PlanCardProps {
   plan: Plan;
   isSelected: boolean;
-  mealCount: number;
   onSelect: (p: Plan) => void;
-  onMealCountChange: (n: number) => void;
+  /** Why the plan cannot be chosen now; the card is then disabled. */
+  unavailable?: string | null;
   enterDelay: number;
-}) {
+}
+
+export function HeroPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay }: PlanCardProps) {
   const { fonts } = useTheme();
   const planRs    = Math.round(plan.price_paise / 100);
-  const perMealRs = Math.round(pricePerMeal(plan) / 100);
+  const perBowlRs = Math.round(pricePerBowl(plan) / 100);
 
   const borderOpacity = useSharedValue(isSelected ? 1 : 0);
   const glowStyle = useAnimatedStyle(() => ({
@@ -143,7 +160,7 @@ export function HeroPlanCard({
   }, [isSelected, borderOpacity]);
 
   return (
-    <AnimatedCard onPress={() => onSelect(plan)} enterDelay={enterDelay}>
+    <AnimatedCard onPress={() => onSelect(plan)} enterDelay={enterDelay} disabled={!!unavailable}>
       <Animated.View style={[heroStyles.card, glowStyle, Shadows.sm]}>
         {/* Decorative blobs */}
         <View style={heroStyles.blob1} />
@@ -192,15 +209,15 @@ export function HeroPlanCard({
             <Text style={[heroStyles.priceLabel, { fontFamily: fonts.bodyMedium }]}>
               total
             </Text>
-            <Text style={[heroStyles.perMeal, { fontFamily: fonts.body }]}>
-              ₹{perMealRs}/meal
+            <Text style={[heroStyles.perBowl, { fontFamily: fonts.body }]}>
+              ₹{perBowlRs}/{(plan.unit ?? DEFAULT_UNITS).singular}
             </Text>
           </View>
         </View>
 
         {/* Features */}
         <View style={heroStyles.featuresGrid}>
-          {(plan.features?.length ? plan.features : ['Fresh daily', 'Never expires', 'Free within 5 km']).slice(0, 3).map((f, i) => (
+          {(plan.features?.length ? plan.features : FALLBACK_FEATURES).slice(0, 3).map((f, i) => (
             <View key={i} style={heroStyles.featureItem}>
               <View style={heroStyles.featureCheck}>
                 <Ionicons name="checkmark" size={10} color={Brand.forest} />
@@ -210,38 +227,15 @@ export function HeroPlanCard({
           ))}
         </View>
 
-        {/* Bottom row: meal count + stepper */}
         <View style={heroStyles.bottomRow}>
-          <View style={heroStyles.mealCountPill}>
+          <View style={heroStyles.bowlCountPill}>
             <Ionicons name="restaurant-outline" size={13} color="rgba(255,255,255,0.85)" />
-            <Text style={[heroStyles.mealCountText, { fontFamily: fonts.bodyMedium }]}>
-              {plan.total_meals} meals
+            <Text style={[heroStyles.bowlCountText, { fontFamily: fonts.bodyMedium }]}>
+              {countOf(plan.bowls_count, plan.unit)}
             </Text>
           </View>
-          {isSelected && plan.duration !== 'trial' && (
-            <Animated.View
-              entering={FadeInDown.delay(50).springify()}
-              style={heroStyles.stepper}>
-              <TouchableOpacity
-                style={[heroStyles.stepBtn, mealCount <= plan.total_meals && heroStyles.stepBtnDisabled]}
-                onPress={() => onMealCountChange(Math.max(plan.total_meals, mealCount - 1))}
-                disabled={mealCount <= plan.total_meals}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="remove" size={15} color={mealCount > plan.total_meals ? '#fff' : 'rgba(255,255,255,0.35)'} />
-              </TouchableOpacity>
-              <Text style={[heroStyles.stepCount, { fontFamily: fonts.display }]}>
-                {mealCount}
-              </Text>
-              <TouchableOpacity
-                style={[heroStyles.stepBtn, !canAddMeal(plan, mealCount) && heroStyles.stepBtnDisabled]}
-                onPress={() => onMealCountChange(mealCount + 1)}
-                disabled={!canAddMeal(plan, mealCount)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="add" size={15} color={canAddMeal(plan, mealCount) ? '#fff' : 'rgba(255,255,255,0.35)'} />
-              </TouchableOpacity>
-            </Animated.View>
-          )}
         </View>
+        {unavailable ? <UnavailableNote text={unavailable} onDark /> : null}
       </Animated.View>
     </AnimatedCard>
   );
@@ -303,7 +297,7 @@ const heroStyles = StyleSheet.create({
   },
   priceRight: { paddingBottom: 4, gap: 2 },
   priceLabel: { fontSize: 11, color: 'rgba(255,255,255,0.65)' },
-  perMeal:    { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.85)' },
+  perBowl:    { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.85)' },
   featuresGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[2], marginBottom: Spacing[4] },
   featureItem:  { flexDirection: 'row', alignItems: 'center', gap: 6, width: '47%' },
   featureCheck: {
@@ -315,50 +309,25 @@ const heroStyles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginTop: 2,
   },
-  mealCountPill: {
+  bowlCountPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radius.full,
     paddingHorizontal: 12, paddingVertical: 7,
   },
-  mealCountText: { fontSize: FontSize.sm, color: '#fff' },
-  stepper: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radius.full,
-    paddingHorizontal: 12, paddingVertical: 6,
-  },
-  stepBtn: {
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center',
-  },
-  stepBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.08)' },
-  stepCount: { fontSize: FontSize.base, color: '#fff', minWidth: 24, textAlign: 'center' },
+  bowlCountText: { fontSize: FontSize.sm, color: '#fff' },
 });
 
-// ─── Standard Plan Card (Weekly Salad) ───────────────────────────────────────
+// ─── Standard Plan Card ──────────────────────────────────────────────────────
 
-export function StandardPlanCard({
-  plan,
-  isSelected,
-  mealCount,
-  onSelect,
-  onMealCountChange,
-  enterDelay,
-}: {
-  plan: Plan;
-  isSelected: boolean;
-  mealCount: number;
-  onSelect: (p: Plan) => void;
-  onMealCountChange: (n: number) => void;
-  enterDelay: number;
-}) {
+export function StandardPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay }: PlanCardProps) {
   const { colors, fonts } = useTheme();
   const planRs    = Math.round(plan.price_paise / 100);
-  const perMealRs = Math.round(pricePerMeal(plan) / 100);
+  const units = ['meals?', 'salads?', 'bowls?', plan.unit?.singular, plan.unit?.plural].filter(Boolean).join('|');
   // The meta line already gives the count, so a feature that only restates it is skipped.
-  const highlight = plan.features?.find((f) => !/^\d+\s+(meals?|salads?|bowls?)$/i.test(f.trim())) ?? null;
+  const highlight = plan.features?.find((f) => !new RegExp(`^\\d+\\s+(${units})$`, 'i').test(f.trim())) ?? null;
 
   return (
-    <AnimatedCard onPress={() => onSelect(plan)} enterDelay={enterDelay}>
+    <AnimatedCard onPress={() => onSelect(plan)} enterDelay={enterDelay} disabled={!!unavailable}>
       <View style={[
         stdStyles.card,
         { backgroundColor: isSelected ? colors.primaryBg : colors.surface, borderWidth: 1, borderColor: isSelected ? colors.primary : colors.border },
@@ -374,13 +343,14 @@ export function StandardPlanCard({
               {plan.name}
             </Text>
             <Text style={[stdStyles.planMeta, { color: colors.textMuted, fontFamily: fonts.body }]}>
-              {plan.total_meals} meals · ₹{perMealRs}/meal
+              {countAndPrice(plan)}
             </Text>
             {highlight ? (
               <Text style={[stdStyles.planFeature, { color: colors.textMuted, fontFamily: fonts.body }]}>
                 {highlight}
               </Text>
             ) : null}
+            {unavailable ? <UnavailableNote text={unavailable} /> : null}
           </View>
           <View style={stdStyles.priceCol}>
             <Text style={[stdStyles.price, { color: isSelected ? colors.primaryDark : colors.text, fontFamily: fonts.display }]}>
@@ -390,45 +360,6 @@ export function StandardPlanCard({
           </View>
         </View>
 
-        {/* Stepper strip (only when selected) */}
-        {isSelected && plan.duration !== 'trial' && (
-          <Animated.View
-            entering={FadeInDown.delay(50).springify()}
-            style={[stdStyles.stepperStrip, { borderTopColor: colors.primary + '22' }]}>
-            <View style={stdStyles.stepperLeft}>
-              <Ionicons name="restaurant-outline" size={13} color={colors.primaryDark} />
-              <Text style={[stdStyles.stepperLabel, { color: colors.primaryDark, fontFamily: fonts.bodyMedium }]}>
-                Meals in this plan
-              </Text>
-            </View>
-            <View style={stdStyles.stepperControls}>
-              <TouchableOpacity
-                style={[stdStyles.stepBtn, {
-                  backgroundColor: mealCount <= plan.total_meals ? colors.surface2 : colors.primaryBg,
-                  borderColor: mealCount <= plan.total_meals ? colors.border : colors.primary,
-                }]}
-                onPress={() => onMealCountChange(Math.max(plan.total_meals, mealCount - 1))}
-                disabled={mealCount <= plan.total_meals}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="remove" size={15} color={mealCount <= plan.total_meals ? colors.textMuted : colors.primary} />
-              </TouchableOpacity>
-              <View style={[stdStyles.stepCount, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={[stdStyles.stepCountNum, { color: colors.text, fontFamily: fonts.display }]}>
-                  {mealCount}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[stdStyles.stepBtn, canAddMeal(plan, mealCount)
-                  ? { backgroundColor: colors.primaryBg, borderColor: colors.primary }
-                  : { backgroundColor: colors.surface2, borderColor: colors.border }]}
-                onPress={() => onMealCountChange(mealCount + 1)}
-                disabled={!canAddMeal(plan, mealCount)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="add" size={15} color={canAddMeal(plan, mealCount) ? colors.primary : colors.textMuted} />
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        )}
       </View>
     </AnimatedCard>
   );
@@ -455,41 +386,13 @@ const stdStyles = StyleSheet.create({
   priceCol: { alignItems: 'flex-end', flexShrink: 0 },
   price:    { fontSize: FontSize.xl, letterSpacing: -0.5 },
   priceSub: { fontSize: 10, marginTop: 2 },
-  stepperStrip: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing[4], paddingVertical: 12, borderTopWidth: 1,
-  },
-  stepperLeft:    { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  stepperLabel:   { fontSize: FontSize.sm },
-  stepperControls:{ flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stepBtn: {
-    width: 32, height: 32, borderRadius: Radius.md, borderWidth: 1.5,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  stepCount:    { minWidth: 44, height: 32, borderRadius: Radius.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-  stepCountNum: { fontSize: FontSize.base },
 });
 
 // ─── Fruit Plan Card ──────────────────────────────────────────────────────────
 
-export function FruitPlanCard({
-  plan,
-  isSelected,
-  mealCount,
-  onSelect,
-  onMealCountChange,
-  enterDelay,
-}: {
-  plan: Plan;
-  isSelected: boolean;
-  mealCount: number;
-  onSelect: (p: Plan) => void;
-  onMealCountChange: (n: number) => void;
-  enterDelay: number;
-}) {
+export function FruitPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay }: PlanCardProps) {
   const { fonts, isDark } = useTheme();
   const planRs    = Math.round(plan.price_paise / 100);
-  const perMealRs = Math.round(pricePerMeal(plan) / 100);
 
   const amber       = '#F59E0B';
   const amberBg     = isDark
@@ -500,11 +403,9 @@ export function FruitPlanCard({
     : (isSelected ? '#F59E0B' : '#FDE68A');
   const amberDark   = isDark ? '#FCD34D' : '#92400E';
   const amberMeta   = isDark ? '#D97706' : '#B45309';
-  const stepperBg   = isDark ? '#2A1E00' : '#FEF3C7';
-  const stepDivider = isDark ? '#3A2800' : '#FDE68A';
 
   return (
-    <AnimatedCard onPress={() => onSelect(plan)} enterDelay={enterDelay}>
+    <AnimatedCard onPress={() => onSelect(plan)} enterDelay={enterDelay} disabled={!!unavailable}>
       <View style={[
         fruitStyles.card,
         { backgroundColor: amberBg, borderColor: amberBorder },
@@ -530,13 +431,14 @@ export function FruitPlanCard({
               )}
             </View>
             <Text style={[fruitStyles.meta, { color: amberMeta, fontFamily: fonts.body }]}>
-              {plan.total_meals} servings · ₹{perMealRs}/serving
+              {countAndPrice(plan)}
             </Text>
             {plan.features?.[0] && (
               <Text style={[fruitStyles.feature, { color: amberMeta, fontFamily: fonts.body }]}>
                 {plan.features[0]}
               </Text>
             )}
+            {unavailable ? <UnavailableNote text={unavailable} /> : null}
           </View>
           <View style={fruitStyles.priceCol}>
             <Text style={[fruitStyles.price, { color: amberDark, fontFamily: fonts.display }]}>
@@ -545,45 +447,6 @@ export function FruitPlanCard({
             <Text style={[fruitStyles.priceSub, { color: amberMeta, fontFamily: fonts.body }]}>total</Text>
           </View>
         </View>
-
-        {isSelected && (
-          <Animated.View
-            entering={FadeInDown.delay(50).springify()}
-            style={[fruitStyles.stepperStrip, { borderTopColor: stepDivider }]}>
-            <Text style={[fruitStyles.stepLabel, { color: amberDark, fontFamily: fonts.bodyMedium }]}>
-              Servings in this plan
-            </Text>
-            <View style={fruitStyles.stepperControls}>
-              <TouchableOpacity
-                style={[fruitStyles.stepBtn, {
-                  backgroundColor: stepperBg,
-                  borderColor: mealCount <= plan.total_meals ? stepDivider : amber,
-                  opacity: mealCount <= plan.total_meals ? 0.5 : 1,
-                }]}
-                onPress={() => onMealCountChange(Math.max(plan.total_meals, mealCount - 1))}
-                disabled={mealCount <= plan.total_meals}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="remove" size={15} color={amberDark} />
-              </TouchableOpacity>
-              <View style={[fruitStyles.stepCount, { borderColor: stepDivider, backgroundColor: isDark ? '#1A1300' : '#fff' }]}>
-                <Text style={[fruitStyles.stepCountNum, { color: amberDark, fontFamily: fonts.display }]}>
-                  {mealCount}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[fruitStyles.stepBtn, {
-                  backgroundColor: stepperBg,
-                  borderColor: canAddMeal(plan, mealCount) ? amber : stepDivider,
-                  opacity: canAddMeal(plan, mealCount) ? 1 : 0.5,
-                }]}
-                onPress={() => onMealCountChange(mealCount + 1)}
-                disabled={!canAddMeal(plan, mealCount)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="add" size={15} color={amberDark} />
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        )}
       </View>
     </AnimatedCard>
   );
@@ -620,16 +483,4 @@ const fruitStyles = StyleSheet.create({
   priceCol: { alignItems: 'flex-end', flexShrink: 0 },
   price:    { fontSize: FontSize.xl, letterSpacing: -0.5 },
   priceSub: { fontSize: 10, marginTop: 2 },
-  stepperStrip: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing[4], paddingVertical: 12, borderTopWidth: 1,
-  },
-  stepLabel:       { fontSize: FontSize.sm },
-  stepperControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stepBtn: {
-    width: 32, height: 32, borderRadius: Radius.md, borderWidth: 1.5,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  stepCount:    { minWidth: 44, height: 32, borderRadius: Radius.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-  stepCountNum: { fontSize: FontSize.base },
 });

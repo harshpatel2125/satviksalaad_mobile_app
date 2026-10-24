@@ -18,6 +18,8 @@ import { useThemePreference } from '@/context/theme-preference';
 import { useTheme } from '@/hooks/use-theme';
 
 const IS_IOS = Platform.OS === 'ios';
+// The mark's dark green is lost on the dark header, so there it takes the cream of logo-cream.png.
+const DARK_MARK_TINT = '#F8F6E2';
 
 function getGreeting(): string {
   const h = parseInt(
@@ -78,7 +80,8 @@ export function HomeHeader({ scrollY, onBellPress, hasBellDot = true }: HomeHead
         <View style={styles.row}>
           <View style={styles.brandRow}>
             <Image
-              source={require('@/assets/logo/logo.png')}
+              source={require('@/assets/logo/logo-mark.png')}
+              tintColor={scheme === 'dark' ? DARK_MARK_TINT : null}
               style={styles.logo}
               contentFit="contain"
             />

@@ -53,7 +53,7 @@ function buildPolicies(s: AppSettings | null): PolicyItem[] {
     {
       icon: 'bicycle-outline',
       title: 'Delivery Policy',
-      description: 'Delivery areas, timings, and missed meals',
+      description: 'Delivery areas, timings and pausing a delivery',
       url: urls.delivery,
     },
   ];

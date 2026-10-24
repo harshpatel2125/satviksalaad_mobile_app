@@ -10,6 +10,26 @@ import { CACHE_TTL } from '@/lib/query-client';
 const FALLBACK_PHONE = '9316102899';
 const FALLBACK_EMAIL = 'care@satviksalaad.com';
 
+export const CAFE = {
+  address: 'GF Shop No. 2, Campus Corner 1, Opp. Prahladnagar Garden, Ahmedabad 380015',
+  mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Satvik+Salaad+Campus+Corner+1+Prahladnagar+Ahmedabad',
+  hoursLabel: 'Every day · 8:00 AM – 8:00 PM',
+  /** 0 = Sunday, as Date#getDay. */
+  openDays: [0, 1, 2, 3, 4, 5, 6],
+  /** Minutes after midnight, IST. */
+  opensAt: 8 * 60,
+  closesAt: 20 * 60,
+};
+
+const IST_OFFSET_MS = 330 * 60 * 1000;
+
+export function isCafeOpen(now: Date = new Date()): boolean {
+  // IST has no daylight saving, so a fixed offset is exact whatever the device's time zone.
+  const ist = new Date(now.getTime() + IST_OFFSET_MS);
+  const minute = ist.getUTCHours() * 60 + ist.getUTCMinutes();
+  return CAFE.openDays.includes(ist.getUTCDay()) && minute >= CAFE.opensAt && minute < CAFE.closesAt;
+}
+
 export type SocialLink = {
   key: 'instagram' | 'facebook' | 'youtube' | 'linkedin';
   label: string;

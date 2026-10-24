@@ -10,6 +10,7 @@ import {
 import { Text } from '@/components/ui/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { formatDay } from '@/lib/subscription-view';
 import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
 import { trackPurchase } from '@/lib/analytics';
 import { useTheme } from '@/hooks/use-theme';
@@ -19,18 +20,43 @@ export default function PaymentSuccessScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { planName, orderId, amountRs } = useLocalSearchParams<{ planName?: string; orderId?: string; amountRs?: string }>();
+  const { planName, orderId, amountRs, startsOn, endsOn, renewal, unit: unitParam } = useLocalSearchParams<{
+    planName?: string;
+    orderId?: string;
+    amountRs?: string;
+    startsOn?: string;
+    endsOn?: string;
+    renewal?: string;
+    /** The plan's word for one, e.g. "bowl". */
+    unit?: string;
+  }>();
+  const unit = unitParam || 'bowl';
+  const queued = renewal === 'true';
 
   useEffect(() => {
     if (orderId) {
       trackPurchase(orderId, Number(amountRs ?? '0'), [{ item_id: orderId, item_name: planName ?? 'Plan' }]);
     }
-    // Invalidate all caches that change after a purchase so the next visit
-    // to wallet/home/deliveries fetches fresh data from the now-updated DB.
-    void queryClient.invalidateQueries({ queryKey: ['wallet'] });
+    void queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
     void queryClient.invalidateQueries({ queryKey: ['home'] });
     void queryClient.invalidateQueries({ queryKey: ['deliveries'] });
+    void queryClient.invalidateQueries({ queryKey: ['profile'] });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dates = startsOn && endsOn ? `Starts ${formatDay(startsOn)} · valid till ${formatDay(endsOn)}` : null;
+  const subtitle = queued
+    ? `${planName ?? 'Your next subscription'} is booked to start after your current one.`
+    : `${planName ?? 'Your subscription'} is confirmed.`;
+  const expectations: { icon: React.ComponentProps<typeof Ionicons>['name']; text: string }[] = [
+    { icon: 'notifications-outline', text: "You'll receive an SMS confirmation shortly" },
+    {
+      icon: 'calendar-outline',
+      text: startsOn
+        ? `Your first ${unit} arrives on ${formatDay(startsOn)}`
+        : `Your first ${unit} arrives on your first delivery day`,
+    },
+    { icon: 'leaf-outline', text: `Skip a day before its cutoff and that ${unit} moves to the end` },
+  ];
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
@@ -45,24 +71,18 @@ export default function PaymentSuccessScreen() {
         </Text>
 
         <Text style={[styles.subtitle, { color: colors.textMuted, fontFamily: fonts.body }]}>
-          {planName
-            ? `${planName} is active and ready to use.`
-            : 'Your plan is active and ready to use.'}
+          {subtitle}
         </Text>
 
         <View style={[styles.infoCard, { backgroundColor: colors.primaryBg, borderColor: colors.primaryTint }]}>
           <Ionicons name="leaf-outline" size={20} color={colors.primary} />
           <Text style={[styles.infoText, { color: colors.primaryDark, fontFamily: fonts.bodyMedium }]}>
-            Deliveries will be scheduled for your preferred days automatically.
+            {dates ?? 'Your deliveries will be scheduled on your days automatically.'}
           </Text>
         </View>
 
         <View style={[styles.expectCard, { backgroundColor: colors.surface, borderWidth: 0 }, CardEdge]}>
-          {([
-            { icon: 'notifications-outline' as const, text: "You'll receive an SMS confirmation shortly" },
-            { icon: 'calendar-outline' as const, text: 'Your first delivery is on your first chosen delivery day' },
-            { icon: 'leaf-outline' as const, text: 'Track & manage your deliveries from the Deliveries tab' },
-          ] as { icon: React.ComponentProps<typeof Ionicons>['name']; text: string }[]).map((item, i) => (
+          {expectations.map((item, i) => (
             <View key={i} style={[styles.expectRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}>
               <Ionicons name={item.icon} size={16} color={colors.primary} />
               <Text style={[styles.expectText, { color: colors.textMuted, fontFamily: fonts.body }]}>

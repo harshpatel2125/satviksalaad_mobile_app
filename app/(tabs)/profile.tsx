@@ -17,6 +17,9 @@ import { EditProfileSheet } from '@/components/screens/profile/edit-profile-shee
 import { ProfileHeader } from '@/components/screens/profile/profile-header';
 import { MenuRow, SettingsSection, SignOutRow } from '@/components/screens/profile/settings-section';
 import { StatsRow } from '@/components/screens/profile/stats-row';
+import { categoryInfo, countOf } from '@/lib/subscription-view';
+import type { Categories, CategoryLeft, Subscription } from '@/types/api';
+
 import { FontSize, Spacing } from "@/constants/theme";
 import { useAlert } from "@/context/alert";
 import { useAuth } from '@/context/auth';
@@ -27,9 +30,8 @@ import {
   appSettingsApi,
   invoicesApi,
   notificationsApi,
-  passesApi,
   profileApi,
-  walletApi,
+  subscriptionsApi,
 } from "@/lib/api";
 import { trackLogout } from '@/lib/analytics';
 import { CACHE_TTL } from "@/lib/query-client";
@@ -39,6 +41,36 @@ import {
 } from "@/lib/home-cache";
 import { revalidateSession } from "@/lib/auth-session";
 import { isPhoneEmail, phoneFromEmail } from '@/lib/phone-email';
+
+type LeftTile = { value: number; label: string };
+
+/**
+ * What the profile says about the customer's subscriptions: one count per
+ * category in its own unit words, in menu order, never added across units.
+ */
+function subscriptionSummary(
+  subs: Subscription[],
+  left: Record<string, CategoryLeft>,
+  categories: Categories,
+): { tiles: LeftTile[]; detail: string } {
+  const entries = Object.entries(left).sort(
+    ([a], [b]) => categoryInfo(categories, a).sort_order - categoryInfo(categories, b).sort_order,
+  );
+  const sharedUnit = new Set(entries.map(([, l]) => l.unit.plural)).size < entries.length;
+  const tiles = entries.map(([slug, l]) => {
+    const words = sharedUnit ? categoryInfo(categories, slug).name : `${l.unit.plural.charAt(0).toUpperCase()}${l.unit.plural.slice(1)}`;
+    return { value: l.left, label: `${words} left` };
+  });
+  const anyLeft = entries.some(([, l]) => l.left > 0);
+  return {
+    tiles: tiles.length > 0 ? tiles : [{ value: 0, label: 'Bowls left' }],
+    detail: anyLeft
+      ? `${entries.map(([, l]) => countOf(l.left, l.unit)).join(' · ')} left`
+      : subs.length > 0
+        ? 'Renew'
+        : 'Choose a plan',
+  };
+}
 
 export default function ProfileScreen() {
   const { colors, fonts } = useTheme();
@@ -68,34 +100,37 @@ export default function ProfileScreen() {
   const { data, isLoading } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
-      const [passesRes, addressesRes, invoicesRes, notificationsRes] = await Promise.all([
-        passesApi.list(),
+      const [subscriptionsRes, addressesRes, invoicesRes, notificationsRes] = await Promise.all([
+        subscriptionsApi.list(),
         addressesApi.list(),
         invoicesApi.list(),
         notificationsApi.list(),
       ]);
-      return { passesRes, addressesRes, invoicesRes, notificationsRes };
+      return { subscriptionsRes, addressesRes, invoicesRes, notificationsRes };
     },
     staleTime: CACHE_TTL.profile,
   });
   useQueryFocusRefetch(["profile"]);
 
+  const summary = React.useMemo(
+    () =>
+      data
+        ? subscriptionSummary(data.subscriptionsRes.data, data.subscriptionsRes.meta.left_by_category ?? {}, data.subscriptionsRes.meta.categories)
+        : null,
+    [data],
+  );
+
   React.useEffect(() => {
-    if (!data || !userId) return;
+    if (!data || !summary || !userId) return;
     writeProfileSubtitlesCache(userId, {
-      passesLeft:   data.passesRes.meta.balance.remaining,
+      bowlsLeft:    summary.tiles[0].value,
+      leftLabel:    summary.tiles[0].label,
+      detail:       summary.detail,
       addressCount: data.addressesRes.data.length,
       invoiceCount: data.invoicesRes.data.length,
       unreadCount:  data.notificationsRes.unread_count,
     });
-  }, [data, userId]);
-
-  // Same query as the Wallet screen, so the two share one cache entry.
-  const { data: walletData } = useQuery({
-    queryKey: ['wallet'],
-    queryFn: walletApi.init,
-    staleTime: CACHE_TTL.wallet,
-  });
+  }, [data, summary, userId]);
 
   const { data: appSettings } = useQuery({
     queryKey: ["app-settings"],
@@ -104,7 +139,6 @@ export default function ProfileScreen() {
   });
 
   // API data takes priority; cache fills in before first API response
-  const passesLeft   = data?.passesRes.meta.balance.remaining   ?? cachedSubtitles?.passesLeft   ?? 0;
   const addressCount = data?.addressesRes.data.length            ?? cachedSubtitles?.addressCount ?? 0;
   const invoiceCount = data?.invoicesRes.data.length             ?? cachedSubtitles?.invoiceCount ?? 0;
   const unreadCount  = data?.notificationsRes.unread_count       ?? cachedSubtitles?.unreadCount  ?? 0;
@@ -113,6 +147,14 @@ export default function ProfileScreen() {
   const showBuiltByCard = appSettings?.data.showBuiltByCard ?? false;
   // Skeleton only on very first open — once cached, subtitles show immediately
   const loading = cachedSubtitles === null && isLoading;
+  const subscriptions = data?.subscriptionsRes.data;
+  const bowlsScheduled = subscriptions
+    ?.filter((sub) => sub.status === 'active' || sub.status === 'upcoming')
+    .reduce((sum, sub) => sum + sub.bowls_scheduled, 0);
+  const shown = summary ?? {
+    tiles: [{ value: cachedSubtitles?.bowlsLeft ?? 0, label: cachedSubtitles?.leftLabel ?? 'Bowls left' }],
+    detail: cachedSubtitles?.detail ?? 'Choose a plan',
+  };
 
   function handleRateApp() {
     const url = Platform.OS === "ios" ? appStoreUrl : playStoreUrl;
@@ -202,18 +244,21 @@ export default function ProfileScreen() {
           <StatsRow
             loading={loading}
             tiles={[
-              { value: passesLeft, label: 'Meals left', onPress: () => router.push('/wallet') },
-              { value: walletData?.stats.upcoming ?? '–', label: 'Upcoming', onPress: () => router.push('/(tabs)/deliveries') },
+              ...shown.tiles.map((tile) => ({ ...tile, onPress: () => router.push('/subscriptions') })),
+              // A count across different units would mean nothing.
+              ...(shown.tiles.length === 1
+                ? [{ value: bowlsScheduled ?? '–', label: 'Scheduled', onPress: () => router.push('/(tabs)/deliveries') }]
+                : []),
               { value: invoiceCount, label: 'Invoices', onPress: () => router.push('/invoices') },
             ]}
           />
 
           <SettingsSection title="Account">
             <MenuRow
-              icon="wallet-outline"
-              label="Wallet & plans"
-              detail={loading ? undefined : passesLeft > 0 ? `${passesLeft} left` : 'Buy a plan'}
-              onPress={() => router.push("/wallet")}
+              icon="leaf-outline"
+              label="My subscription"
+              detail={loading ? undefined : shown.detail}
+              onPress={() => router.push("/subscriptions")}
             />
             <MenuRow
               icon="receipt-outline"

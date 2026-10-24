@@ -6,6 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { SUNDAY_DELIVERY_NOTE } from '@/lib/delivery-rules';
 import { formatTimeRange } from '@/lib/slots';
 import type { TimeSlot } from '@/types/api';
 
@@ -18,6 +19,7 @@ export const WEEK_DAYS = [
   { key: 'Thursday',  short: 'Thu' },
   { key: 'Friday',    short: 'Fri' },
   { key: 'Saturday',  short: 'Sat' },
+  { key: 'Sunday',    short: 'Sun' },
 ] as const;
 
 // ─── Section Label ────────────────────────────────────────────────────────────
@@ -56,6 +58,7 @@ export function DeliverySchedule({
   slots,
   selectedSlotId,
   onSelectSlot,
+  readOnly = false,
   enterDelay,
 }: {
   selectedDays: string[];
@@ -63,6 +66,8 @@ export function DeliverySchedule({
   slots: TimeSlot[];
   selectedSlotId: string;
   onSelectSlot: (id: string) => void;
+  /** The customer's days and slot are shared by every subscription they hold, so a new one keeps them. */
+  readOnly?: boolean;
   enterDelay: number;
 }) {
   const { colors, fonts } = useTheme();
@@ -80,9 +85,16 @@ export function DeliverySchedule({
         <View style={[schedStyles.headerIcon, { backgroundColor: colors.primaryBg }]}>
           <Ionicons name="calendar-outline" size={16} color={colors.primaryDark} />
         </View>
-        <Text style={[schedStyles.headerTitle, { color: colors.text, fontFamily: fonts.bodySemibold }]}>
-          Delivery Schedule
-        </Text>
+        <View style={schedStyles.headerText}>
+          <Text style={[schedStyles.headerTitle, { color: colors.text, fontFamily: fonts.bodySemibold }]}>
+            Delivery Schedule
+          </Text>
+          {readOnly ? (
+            <Text style={[schedStyles.hint, { color: colors.textMuted, fontFamily: fonts.body }]}>
+              Everything comes on the same days, time and address. Change them in Deliveries.
+            </Text>
+          ) : null}
+        </View>
       </View>
 
       {/* Days */}
@@ -103,6 +115,7 @@ export function DeliverySchedule({
                     : { backgroundColor: colors.surface2, borderColor: 'transparent' },
                 ]}
                 onPress={() => onToggleDay(d.key)}
+                disabled={readOnly}
                 hitSlop={{ top: 4, bottom: 4, left: 2, right: 2 }}
                 activeOpacity={0.75}
               >
@@ -121,9 +134,16 @@ export function DeliverySchedule({
             );
           })}
         </View>
-        <Text style={[schedStyles.hint, { color: colors.textMuted, fontFamily: fonts.body }]}>
-          {"Select the days you'd like your bowl delivered"}
-        </Text>
+        {readOnly ? null : (
+          <>
+            <Text style={[schedStyles.hint, { color: colors.textMuted, fontFamily: fonts.body }]}>
+              {"Pick the days you'd like your deliveries"}
+            </Text>
+            <Text style={[schedStyles.note, { color: colors.textMuted, fontFamily: fonts.body }]}>
+              {SUNDAY_DELIVERY_NOTE}
+            </Text>
+          </>
+        )}
       </View>
 
       <View style={[schedStyles.divider, { backgroundColor: colors.border }]} />
@@ -147,6 +167,7 @@ export function DeliverySchedule({
                   },
                 ]}
                 onPress={() => onSelectSlot(slot.id)}
+                disabled={readOnly}
                 activeOpacity={0.8}
               >
                 <Text style={schedStyles.slotEmoji}>{slot.icon ?? '⏰'}</Text>
@@ -167,9 +188,11 @@ export function DeliverySchedule({
             );
           })}
         </View>
-        <Text style={[schedStyles.hint, { color: colors.textMuted, fontFamily: fonts.body }]}>
-          We aim to deliver around this window
-        </Text>
+        {readOnly ? null : (
+          <Text style={[schedStyles.hint, { color: colors.textMuted, fontFamily: fonts.body }]}>
+            We aim to deliver around this window
+          </Text>
+        )}
       </View>
     </Animated.View>
   );
@@ -179,16 +202,18 @@ const schedStyles = StyleSheet.create({
   card:        { borderRadius: Radius.xl, overflow: 'hidden' },
   header:      { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], padding: Spacing[4], paddingBottom: Spacing[3] },
   headerIcon:  { width: 34, height: 34, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  headerText:  { flex: 1, gap: 2 },
   headerTitle: { fontSize: FontSize.base },
   block:       { paddingHorizontal: Spacing[4], paddingBottom: Spacing[4], gap: Spacing[2] },
   blockLabel:  { fontSize: 11, letterSpacing: 0.5 },
   divider:     { height: 1, marginHorizontal: Spacing[4], marginBottom: Spacing[3] },
   hint:        { fontSize: FontSize.xs, marginTop: 2 },
+  note:        { fontSize: FontSize.xs, lineHeight: 16, opacity: 0.85 },
   daysRow:     { flexDirection: 'row', gap: Spacing[2] },
-  dayChip:     { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: Radius.full, borderWidth: 1 },
+  dayChip:     { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, borderRadius: Radius.full, borderWidth: 1 },
   dayText:     { fontSize: 12 },
   slotsRow:      { flexDirection: 'row', gap: Spacing[2] },
-  slotChip:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 12, paddingHorizontal: 6, borderRadius: Radius.full, borderWidth: 1 },
+  slotChip:      { flex: 1, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 12, paddingHorizontal: 6, borderRadius: Radius.full, borderWidth: 1 },
   slotEmoji:     { fontSize: 16 },
   slotTextGroup: { alignItems: 'flex-start', gap: 1 },
   slotLabel:     { fontSize: FontSize.xs },

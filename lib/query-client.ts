@@ -5,7 +5,7 @@ import { storage } from './storage';
 export const CACHE_TTL = {
   home:                  5 * 60 * 1000,
   homeStatic:           30 * 60 * 1000,
-  wallet:                5 * 60 * 1000,
+  subscriptions:         5 * 60 * 1000,
   deliveries:            5 * 60 * 1000,
   profile:               5 * 60 * 1000,
   notifications:         5 * 60 * 1000,
@@ -30,6 +30,9 @@ export const asyncPersister = experimental_createQueryPersister({
   storage: mmkvStorage,
   // As long as the longest staleTime of the queries persisted with it.
   maxAge: 30 * 60 * 1000,
+  // A new value drops everything persisted under the old one; change it when a
+  // persisted response changes shape.
+  buster: '3',
   prefix: 'ss-',
   serialize: JSON.stringify,
   deserialize: JSON.parse,

@@ -46,7 +46,7 @@ const STATUS_MESSAGES = [
 ];
 
 export default function AuthCallbackScreen() {
-  const { colors, fonts } = useTheme();
+  const { colors, fonts, isDark } = useTheme();
   const { session, isLoading } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ token?: string; error?: string }>();
@@ -152,7 +152,11 @@ export default function AuthCallbackScreen() {
 
         {/* Logo */}
         <Image
-          source={require('@/assets/logo/logo.png')}
+          source={
+            isDark
+              ? require('@/assets/logo/logo-cream.png')
+              : require('@/assets/logo/logo.png')
+          }
           style={s.logo}
           contentFit="contain"
         />
@@ -199,8 +203,8 @@ const s = StyleSheet.create({
   },
 
   logo: {
-    width: 120,
-    height: 72,
+    width: 176,
+    aspectRatio: 1200 / 504,
     marginBottom: Spacing[2],
   },
   heading: {

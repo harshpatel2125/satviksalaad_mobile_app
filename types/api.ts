@@ -72,33 +72,126 @@ export interface AddressPayload {
   is_default?: boolean;
 }
 
-// ─── Passes ───────────────────────────────────────────────────────────────────
-export interface PassPlan {
-  id: string;
+// ─── Subscriptions ────────────────────────────────────────────────────────────
+/** How a category counts what it delivers, e.g. "bowl" / "bowls" or "bottle" / "bottles". */
+export interface Units {
+  singular: string;
+  plural: string;
+}
+
+export interface CategoryInfo {
+  slug: string;
+  /** As the menu names it, e.g. "Salad Bowls". */
   name: string;
-  category: string;
-  passes_count: number;
-  price_paise: number;
+  unit: Units;
+  image_url: string | null;
+  sort_order: number;
 }
 
-export interface PassPurchase {
+/** Every menu category, by slug. */
+export type Categories = Record<string, CategoryInfo>;
+
+/** What is left in one category's running and waiting subscriptions. */
+export interface CategoryLeft {
+  left: number;
+  unit: Units;
+}
+
+export type SubscriptionStatus = 'active' | 'upcoming' | 'completed' | 'expired' | 'refunded';
+
+export interface Subscription {
   id: string;
-  user_id: string;
-  status: string;
-  paid_at: string | null;
-  passes_purchased: number;
-  price_paise: number;
+  status: SubscriptionStatus;
+  /** A customer holds at most one running subscription per category. */
+  category: string;
+  unit: Units;
+  plan: {
+    id: string | null;
+    name: string;
+    slug: string | null;
+    category: string;
+    bowls_count: number | null;
+    is_trial: boolean;
+    is_high_protein: boolean;
+  };
   order_id: string | null;
-  pass_plans: PassPlan | null;
+  bowls_total: number;
+  bowls_delivered: number;
+  bowls_expired: number;
+  bowls_revoked: number;
+  bowls_left: number;
+  bowls_scheduled: number;
+  bowls_unscheduled: number;
+  days_skipped: number;
+  // These four are IST calendar dates, YYYY-MM-DD.
+  starts_on: string;
+  original_ends_on: string;
+  ends_on: string;
+  last_allowed_on: string;
+  extension_days_used: number;
+  extension_days_allowed: number;
+  price_paise: number;
+  paid_at: string | null;
+  created_at: string;
 }
 
-export interface PassesResponse {
+export interface SubscriptionsResponse {
   success: boolean;
-  data: PassPurchase[];
+  /** Newest first. */
+  data: Subscription[];
   meta: {
-    count: number;
-    balance: { total_purchased: number; total_used: number; remaining: number };
+    current: Subscription | null;
+    next: Subscription | null;
+    /** One per category, oldest first. */
+    running: Subscription[];
+    waiting: Subscription[];
+    /** Whether the default category's trial has been had. */
+    trial_used: boolean;
+    /** Whether each category's trial has been had; a category not listed has none used. */
+    trial_used_by_category: Record<string, boolean>;
+    /** Left in the default category only; `left_by_category` counts each in its own unit. */
+    bowls_left: number;
+    left_by_category: Record<string, CategoryLeft>;
+    categories: Categories;
   };
+}
+
+export interface SubscriptionSyncResponse {
+  success: boolean;
+  added: number;
+  removed: number;
+}
+
+export interface SubscriptionPreviewPayload {
+  planId: string;
+  preferredDays?: string[];
+  timeSlotId?: string;
+  firstDeliveryPreference?: string;
+}
+
+/** The days, time and address every subscription of the customer shares. */
+export interface SharedSchedule {
+  preferred_days: string[];
+  delivery_slot: string;
+  address: string | null;
+}
+
+export interface SubscriptionPreviewResponse {
+  success: boolean;
+  can_buy: boolean;
+  /** Why it cannot be bought, as a sentence to show. */
+  reason: string | null;
+  code: 'trial_used' | 'renewal_exists' | null;
+  /** True when it would start after the running subscription of its category. */
+  queued: boolean;
+  starts_on: string;
+  ends_on: string;
+  last_allowed_on: string;
+  after: { plan_name: string; ends_on: string } | null;
+  after_plan_name: string | null;
+  trial_available: boolean;
+  /** Set when the order would use the customer's own days, time and address instead of the ones sent. */
+  your_schedule: SharedSchedule | null;
 }
 
 // ─── Delivery Schedules ───────────────────────────────────────────────────────
@@ -121,8 +214,10 @@ export type DeliveryStatus =
   | 'out_for_delivery'
   | 'delivered'
   | 'missed'
-  | 'skipped';
+  | 'skipped'
+  | 'cancelled';
 
+/** One item of a delivery: one category's row on that date and time. */
 export interface DeliveryLog {
   id: string;
   user_id: string | null;
@@ -131,21 +226,15 @@ export interface DeliveryLog {
   status: DeliveryStatus;
   delivered_at: string | null;
   quantity: number;
-  created_at: string;
+  meal_id: string | null;
+  /** The meal on it, when it is one of the subscription menu's. */
+  meal_name?: string | null;
+  meal_image_url?: string | null;
+  created_at: string | null;
   delivery_schedule_id?: string | null;
-}
-
-export interface DeliveryLogsResponse {
-  success: boolean;
-  data: DeliveryLog[];
-  meta: { count: number };
-}
-
-export interface PreferredDaysResponse {
-  success: boolean;
-  preferred_days: string[];
-  logs_regenerated: number;
-  error?: string;
+  subscription_id: string | null;
+  category: string;
+  unit: Units;
 }
 
 // ─── Plans ────────────────────────────────────────────────────────────────────
@@ -153,14 +242,21 @@ export interface Plan {
   id: string;
   slug?: string;
   name: string;
-  category: 'salad' | 'fruit' | 'combo';
-  duration: string;
-  total_meals: number;
+  category: string;
+  /** The category's menu name, e.g. "Vegetable Juices". */
+  category_name: string;
+  unit: Units;
+  unit_singular: string;
+  unit_plural: string;
+  bowls_count: number;
   price_paise: number;
-  price_per_meal_paise?: number;
+  price_per_bowl_paise?: number;
   description?: string | null;
   features: string[];
   is_popular?: boolean;
+  is_trial: boolean;
+  is_high_protein: boolean;
+  grace_days: number;
 }
 
 export interface PlansResponse {
@@ -196,13 +292,13 @@ export interface DietaryOptionsResponse {
 // ─── Orders ───────────────────────────────────────────────────────────────────
 export interface CreateOrderPayload {
   planId: string;
-  timeSlotId: string;
   name: string;
   mobile: string;
-  area: string;
-  address: string;
-  preferredDays: string[];
-  extraMeals?: number;
+  /** The next four are ignored for a renewal, which keeps the current days, slot and address. */
+  timeSlotId?: string;
+  area?: string;
+  address?: string;
+  preferredDays?: string[];
   specialInstructions?: string;
   dietaryPreferences?: string[];
 }
@@ -210,6 +306,10 @@ export interface CreateOrderPayload {
 export interface CreateOrderResponse {
   success: boolean;
   orderId: string;
+  renewal: boolean;
+  starts_on: string;
+  ends_on: string;
+  last_allowed_on: string;
   error?: string;
 }
 
@@ -234,6 +334,16 @@ export interface VerifyPaymentPayload {
 
 export interface VerifyPaymentResponse {
   success: boolean;
+  subscription?: {
+    id: string;
+    category: string;
+    status: SubscriptionStatus;
+    plan_name: string;
+    bowls_total: number;
+    starts_on: string;
+    ends_on: string;
+    last_allowed_on: string;
+  };
   error?: string;
 }
 
@@ -303,7 +413,7 @@ export interface InvoiceBillingSnapshot {
     state?: string;
     pincode?: string;
   };
-  plan?: { name?: string; passesCount?: number; hsnSac?: string };
+  plan?: { name?: string; bowlsCount?: number; hsnSac?: string };
 }
 
 export interface InvoiceDetail extends Invoice {
@@ -423,6 +533,13 @@ export interface DeliveryHistoryLog {
   status: string;
   delivered_at: string | null;
   quantity: number;
+  // Optional only for a history cached before the server sent them.
+  category?: string;
+  category_name?: string;
+  unit?: Units;
+  /** The meal on it, when it is one of the subscription menu's. */
+  meal_name?: string | null;
+  meal_image_url?: string | null;
 }
 
 export interface DeliveryHistoryResponse {
@@ -438,13 +555,25 @@ export interface InitMeal {
   image_url: string | null;
 }
 
+/** The customer's subscriptions as the home and deliveries replies carry them. */
+interface SubscriptionsSummary {
+  /** The running subscription of the default category, else the first running one. */
+  subscription: Subscription | null;
+  next_subscription: Subscription | null;
+  /** Running and waiting ones, oldest first. */
+  subscriptions: Subscription[];
+  trial_used: boolean;
+  trial_used_by_category: Record<string, boolean>;
+  /** Left in the default category only; `left_by_category` counts each in its own unit. */
+  bowls_left: number;
+  left_by_category: Record<string, CategoryLeft>;
+  categories: Categories;
+}
+
 export interface DeliveriesInitResponse {
   success: boolean;
-  data: {
-    purchase: PassPurchase | null;
-    balance: { total_purchased: number; total_used: number } | null;
+  data: SubscriptionsSummary & {
     addresses: DeliveryAddress[];
-    meals: InitMeal[];
     schedules: DeliverySchedule[];
     slots: TimeSlot[];
     logs: DeliveryLog[];
@@ -453,33 +582,41 @@ export interface DeliveriesInitResponse {
   };
 }
 
-export interface DeliveriesActionResponse extends DeliveriesInitResponse {
-  homeData: {
-    purchase: { id: string; plan_name: string | null } | null;
-    balance: { total_purchased: number; total_used: number } | null;
-    schedule: { preferred_days: string[]; delivery_slot: string } | null;
-    logs: HomeCriticalLog[];
-  };
+/** What a skip or undo did to one item. */
+export interface SkipItemResult {
+  id: string;
+  category: string;
+  slot: string;
+  subscription_id: string | null;
+  plan_name: string | null;
+  changed: boolean;
+  moved_to: string | null;
+  ends_on: string | null;
+  last_allowed_on: string | null;
+  code: string | null;
+  /** Why this item could not change, as a sentence. */
+  error: string | null;
 }
 
-export interface HomeCriticalLog {
-  id: string;
-  delivery_date: string;
-  delivery_slot: string;
-  status: DeliveryStatus;
-  quantity: number;
-  delivered_at: string | null;
-  meal_id: string | null;
+export interface DeliveriesActionResponse extends DeliveriesInitResponse {
+  homeData: HomeData;
+  /** The first item's outcome. */
+  result: { moved_to: string | null; ends_on: string | null; last_allowed_on: string | null } | null;
+  results: SkipItemResult[];
+  /** The sentence to show after a skip, an undo or a change of quantity. */
+  message: string | null;
 }
+
+export type HomeCriticalLog = DeliveryLog;
+
+export type HomeData = SubscriptionsSummary & {
+  schedule: { preferred_days: string[]; delivery_slot: string } | null;
+  logs: DeliveryLog[];
+};
 
 export interface HomeCriticalResponse {
   success: boolean;
-  data: {
-    purchase: { id: string; plan_name: string | null } | null;
-    balance: { total_purchased: number; total_used: number } | null;
-    schedule: { preferred_days: string[]; delivery_slot: string } | null;
-    logs: HomeCriticalLog[];
-  };
+  data: HomeData;
 }
 
 export interface HomeStaticResponse {

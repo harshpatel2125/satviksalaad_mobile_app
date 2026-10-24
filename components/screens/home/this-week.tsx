@@ -14,7 +14,7 @@ interface ThisWeekProps {
   logs: HomeCriticalLog[];
   colors: ReturnType<typeof useTheme>['colors'];
   fonts: ReturnType<typeof useTheme>['fonts'];
-  onDayPress: (log: HomeCriticalLog | null) => void;
+  onDayPress: (date: string) => void;
   loading?: boolean;
 }
 
@@ -49,18 +49,17 @@ export function ThisWeek({
   const today = todayISTStr();
   const tomorrow = tomorrowISTStr();
   const weekDates = getWeekDates(0, today);
-  const logByDate = new Map(logs.map((l) => [l.delivery_date, l]));
 
   return (
     <View style={weekStyles.grid}>
       {DISPLAY_DAYS.map((day, i) => {
         const date = weekDates[i];
-        const log = logByDate.get(date);
+        const onDay = logs.filter((l) => l.delivery_date === date && l.status !== 'cancelled');
         const isPreferred = preferredDays.includes(day);
         const isToday = date === today;
         const isPast = date < today;
-        const isDelivered = log?.status === 'delivered';
-        const isSkipped = log?.status === 'skipped';
+        const isDelivered = onDay.some((l) => l.status === 'delivered');
+        const isSkipped = onDay.length > 0 && onDay.every((l) => l.status === 'skipped');
         const isNext = date === tomorrow && isPreferred;
 
         let bg = colors.surface2;
@@ -81,7 +80,7 @@ export function ThisWeek({
               { backgroundColor: bg, borderColor: border ?? 'transparent', borderWidth: border ? 1.5 : 0 },
               isToday && weekStyles.todayCell,
             ]}
-            onPress={() => { popupEvents.emit(); onDayPress(log ?? null); }}
+            onPress={() => { popupEvents.emit(); onDayPress(date); }}
             activeOpacity={0.8}>
             <Text style={[weekStyles.dayLabel, { color: fg, fontFamily: fonts.bodyMedium }]}>
               {day.slice(0, 3).toUpperCase()}

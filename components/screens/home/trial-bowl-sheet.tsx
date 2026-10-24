@@ -102,7 +102,7 @@ export function TrialBowlSheet({ visible, trialPlanId, trialPrice, meals, onDism
           </Text>
 
           <Text style={[styles.subtext, { color: colors.textMuted }]}>
-            3 meals with 30 g of protein each. Your first delivery is on the next delivery day or later.
+            3 bowls with 30 g of protein each. Your first delivery is on the next delivery day or later.
           </Text>
 
           {meals.length > 0 && (
@@ -135,11 +135,11 @@ export function TrialBowlSheet({ visible, trialPlanId, trialPrice, meals, onDism
             <View>
               <Text style={[styles.price, { color: colors.primary }]}>₹{trialPrice}</Text>
               <Text style={[styles.priceLabel, { color: colors.textMuted }]}>
-                3 meals · free within 5 km
+                3 bowls · free within 10 km
               </Text>
             </View>
             <View style={styles.perks}>
-              {["30 g protein per meal", "Free delivery within 5 km", "3 meals over 3 days"].map((p) => (
+              {["30 g protein per bowl", "Free delivery within 10 km", "3 bowls over 3 days"].map((p) => (
                 <Text key={p} style={[styles.perk, { color: colors.textMuted }]}>
                   ✓ {p}
                 </Text>
@@ -151,7 +151,7 @@ export function TrialBowlSheet({ visible, trialPlanId, trialPrice, meals, onDism
             style={[styles.cta, { backgroundColor: colors.primary }]}
             onPress={() => {
               onDismiss();
-              router.push({ pathname: "/buy-passes", params: { planId: trialPlanId } });
+              router.push({ pathname: "/plans", params: { planId: trialPlanId } });
             }}
           >
             <Text style={styles.ctaText}>Start the trial for ₹{trialPrice}</Text>

@@ -35,7 +35,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 
 export default function LoginScreen() {
-  const { colors, fonts } = useTheme();
+  const { colors, fonts, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -160,10 +160,17 @@ export default function LoginScreen() {
         {/* Logo */}
         <View style={styles.logoSection}>
           <Image
-            source={require("@/assets/logo/logo.png")}
+            source={
+              isDark
+                ? require("@/assets/logo/logo-cream.png")
+                : require("@/assets/logo/logo.png")
+            }
             style={styles.logo}
             contentFit="contain"
           />
+          <Text style={[styles.trademark, { color: colors.textMuted }]} accessibilityElementsHidden importantForAccessibility="no">
+            ™
+          </Text>
         </View>
 
         {/* Headings */}
@@ -434,10 +441,17 @@ const styles = StyleSheet.create({
 
   logoSection: {
     marginBottom: Spacing[7],
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  trademark: {
+    fontSize: 9,
+    lineHeight: 11,
+    marginLeft: 1,
   },
   logo: {
-    width: 130,
-    height: 80,
+    width: 176,
+    aspectRatio: 1200 / 504,
   },
 
   heading: {

@@ -11,7 +11,9 @@ interface QuickActionsProps {
   colors: ReturnType<typeof useTheme>['colors'];
   fonts: ReturnType<typeof useTheme>['fonts'];
   onSkipToday: () => void;
-  onBuyPasses: () => void;
+  /** Has or had a subscription, so the plans action reads "Renew". */
+  hadSubscription: boolean;
+  onPlans: () => void;
   onMenu: () => void;
   onSettings: () => void;
 }
@@ -20,7 +22,8 @@ export function QuickActions({
   colors,
   fonts,
   onSkipToday,
-  onBuyPasses,
+  hadSubscription,
+  onPlans,
   onMenu,
   onSettings,
 }: QuickActionsProps) {
@@ -28,14 +31,14 @@ export function QuickActions({
     {
       icon: 'calendar-outline' as const,
       label: 'Skip a day',
-      sub: 'Free, by 11 PM the night before',
+      sub: 'Free, before the cutoff',
       onPress: onSkipToday,
     },
     {
-      icon: 'add-circle-outline' as const,
-      label: 'Buy a plan',
-      sub: 'Top up your wallet',
-      onPress: onBuyPasses,
+      icon: hadSubscription ? 'refresh-outline' as const : 'add-circle-outline' as const,
+      label: hadSubscription ? 'Renew' : 'Choose a plan',
+      sub: hadSubscription ? 'Book your next one' : 'Trial, weekly or monthly',
+      onPress: onPlans,
     },
     {
       icon: 'settings-outline' as const,

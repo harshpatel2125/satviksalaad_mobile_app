@@ -32,7 +32,7 @@ import { isVersionBelow } from "@/lib/version";
 import { trackScreenView } from "@/lib/analytics";
 import { parseIncomingUrl } from "@/lib/deep-links";
 import { Image } from 'expo-image';
-import { addressesApi, appSettingsApi, deliveriesApi, homeApi, invoicesApi, menuApi, notificationsApi, plansApi, slotsApi, walletApi } from '@/lib/api';
+import { addressesApi, appSettingsApi, deliveriesApi, homeApi, invoicesApi, menuApi, notificationsApi, plansApi, slotsApi, subscriptionsApi } from '@/lib/api';
 import { readAddressesCache, writeAddressesCache, readInvoicesCache, writeInvoicesCache, readMenuCache, writeSlotsCache } from '@/lib/home-cache';
 import { optimizedImageUrls } from '@/lib/image-url';
 import { registerPushToken } from '@/lib/push-notifications';
@@ -175,21 +175,28 @@ function AppNavigator({ fontsLoaded, onReady }: { fontsLoaded: boolean; onReady:
           void queryClient.invalidateQueries({ queryKey: ['home'] });
           void queryClient.invalidateQueries({ queryKey: ['notifications'] });
           router.push("/delivery-history" as Href);
-        } else if (type === "order_confirmed" || type === "pass_balance_low") {
+        } else if (type === "order_confirmed") {
           void queryClient.invalidateQueries({ queryKey: ['home'] });
-          void queryClient.invalidateQueries({ queryKey: ['wallet'] });
+          void queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
           void queryClient.invalidateQueries({ queryKey: ['notifications'] });
           router.push("/(tabs)" as Href);
-        } else if (type === "passes_completed" || type === "trial_bowl_completed") {
+        } else if (type === "subscription_completed" || type === "trial_completed") {
           void queryClient.invalidateQueries({ queryKey: ['home'] });
-          void queryClient.invalidateQueries({ queryKey: ['wallet'] });
-          router.push("/buy-passes" as Href);
+          void queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+          router.push("/plans" as Href);
+        } else if (
+          type === "subscription_ending" ||
+          type === "subscription_expired" ||
+          type === "subscription_extended" ||
+          type === "refund_processed"
+        ) {
+          void queryClient.invalidateQueries({ queryKey: ['home'] });
+          void queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+          void queryClient.invalidateQueries({ queryKey: ['deliveries'] });
+          router.push("/subscriptions" as Href);
         } else if (type === "invoice_ready") {
           void queryClient.invalidateQueries({ queryKey: ['invoices'] });
           router.push("/invoices" as Href);
-        } else if (type === "refund_processed") {
-          void queryClient.invalidateQueries({ queryKey: ['wallet'] });
-          router.push("/wallet" as Href);
         } else if (type === "delivery_digest" || type === "delivery_skipped") {
           router.push("/(delivery-partner)" as Href);
         } else if (data?.screen) {
@@ -222,7 +229,7 @@ function AppNavigator({ fontsLoaded, onReady }: { fontsLoaded: boolean; onReady:
       .catch(() => {});
     void queryClient.prefetchQuery({ queryKey: ['app-settings'], queryFn: appSettingsApi.get,   staleTime: CACHE_TTL.appSettings  });
     void queryClient.prefetchQuery({ queryKey: ['home'],          queryFn: homeApi.critical,      staleTime: CACHE_TTL.home          });
-    void queryClient.prefetchQuery({ queryKey: ['wallet'],        queryFn: walletApi.init,        staleTime: CACHE_TTL.wallet        });
+    void queryClient.prefetchQuery({ queryKey: ['subscriptions'], queryFn: subscriptionsApi.list, staleTime: CACHE_TTL.subscriptions });
     void queryClient.prefetchQuery({ queryKey: ['deliveries'],    queryFn: deliveriesApi.init,    staleTime: CACHE_TTL.deliveries    });
     void queryClient.prefetchQuery({ queryKey: ['notifications'], queryFn: notificationsApi.list, staleTime: CACHE_TTL.notifications });
     void queryClient.prefetchQuery({ queryKey: ['invoices'],      queryFn: invoicesApi.list,      staleTime: CACHE_TTL.invoices      });
@@ -411,21 +418,16 @@ function RootLayoutInner() {
         <Stack.Screen name="delivery-detail" />
         <Stack.Screen name="meal-detail" />
         <Stack.Screen name="video-player" />
-        <Stack.Screen name="wallet" />
+        <Stack.Screen name="subscriptions" />
         <Stack.Screen name="addresses" />
         <Stack.Screen name="add-address" />
         <Stack.Screen name="edit-address" />
         <Stack.Screen name="settings" />
         <Stack.Screen name="support" />
-        <Stack.Screen name="buy-passes" />
+        <Stack.Screen name="cafe-menu" />
+        <Stack.Screen name="plans" />
         <Stack.Screen name="invoice-detail" />
-        <Stack.Screen
-          name="skip-delivery"
-          options={{
-            presentation: "transparentModal",
-            animation: "slide_from_bottom",
-          }}
-        />
+        <Stack.Screen name="skip-delivery" options={{ animation: "none" }} />
         <Stack.Screen
           name="payment-success"
           options={{ gestureEnabled: false }}

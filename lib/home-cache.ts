@@ -1,22 +1,21 @@
 import type {
+  DeliveriesInitResponse,
   DeliveryAddress,
   DeliveryHistoryLog,
-  DeliveryLog,
-  DeliverySchedule,
   DietaryOption,
-  InitMeal,
+  HomeData,
   Invoice,
   InvoiceDetailResponse,
   MenuMeal,
   NutritionFlags,
-  PassPurchase,
   Plan,
   Profile,
+  SubscriptionsResponse,
   TimeSlot,
 } from "@/types/api";
 import { storage } from "./storage";
 
-const KEY_PREFIX = "ss-home-";
+const KEY_PREFIX = "ss-home-v3-";
 const NAME_KEY_PREFIX = "ss-name-";
 
 export function readCachedName(userId: string): string | null {
@@ -33,16 +32,6 @@ export function writeCachedName(userId: string, name: string): void {
   } catch {}
 }
 
-export interface CachedDeliveryLog {
-  id: string;
-  deliveryDate: string; // "YYYY-MM-DD"
-  deliverySlot: string; // "noon" | "evening"
-  status: string; // "scheduled" | "out_for_delivery" | "delivered" | "missed" | "skipped"
-  quantity: number; // meals this delivery uses up
-  mealId: string | null;
-  deliveredAt: string | null;
-}
-
 export interface CachedSlot {
   id: string; // "noon" | "evening"
   label: string;
@@ -53,17 +42,8 @@ export interface CachedSlot {
 export interface HomeCacheData {
   userId: string;
   cachedAt: string; // ISO timestamp
-  purchaseId: string | null; // null = no active plan
-  planName: string | null;
-  logs: CachedDeliveryLog[]; // 37-day window (7 past + 30 future)
-  schedule: {
-    preferredDays: string[]; // ["Monday","Tuesday",...]
-    deliverySlot: string;
-  } | null;
-  balance: {
-    totalPurchased: number;
-    totalUsed: number;
-  } | null;
+  /** The last home reply, as received. */
+  home: HomeData;
   slots: CachedSlot[];
 }
 
@@ -110,29 +90,25 @@ export function writeMenuCache(data: CachedMenuData): void {
   } catch {}
 }
 
-// ─── Wallet cache ─────────────────────────────────────────────────────────────
+// ─── Subscriptions cache ──────────────────────────────────────────────────────
 
-const WALLET_KEY_PREFIX = "ss-wallet-";
+const SUBSCRIPTIONS_KEY_PREFIX = "ss-subs-v2-";
 
-export interface CachedWalletData {
-  balance: { totalPurchased: number; totalUsed: number } | null;
-  purchases: PassPurchase[];
-  stats: { delivered: number; upcoming: number; skipped: number };
-}
+export type CachedSubscriptionsData = Pick<SubscriptionsResponse, "data" | "meta">;
 
-export function readWalletCache(userId: string): CachedWalletData | null {
+export function readSubscriptionsCache(userId: string): CachedSubscriptionsData | null {
   try {
-    const raw = storage.getString(WALLET_KEY_PREFIX + userId);
+    const raw = storage.getString(SUBSCRIPTIONS_KEY_PREFIX + userId);
     if (!raw) return null;
-    return JSON.parse(raw) as CachedWalletData;
+    return JSON.parse(raw) as CachedSubscriptionsData;
   } catch {
     return null;
   }
 }
 
-export function writeWalletCache(userId: string, data: CachedWalletData): void {
+export function writeSubscriptionsCache(userId: string, data: CachedSubscriptionsData): void {
   try {
-    storage.set(WALLET_KEY_PREFIX + userId, JSON.stringify(data));
+    storage.set(SUBSCRIPTIONS_KEY_PREFIX + userId, JSON.stringify(data));
   } catch {}
 }
 
@@ -236,7 +212,7 @@ export function writeInvoiceDetailCache(
 // ─── Plans cache ─────────────────────────────────────────────────────────────
 // Global key — plan catalogue is not user-specific.
 
-const PLANS_KEY = "ss-plans-v1";
+const PLANS_KEY = "ss-plans-v3";
 
 export function readPlansCache(): Plan[] | null {
   try {
@@ -299,18 +275,9 @@ export function writeDietaryOptionsCache(data: DietaryOption[]): void {
 // ─── Deliveries cache ─────────────────────────────────────────────────────────
 // The full deliveries init payload, per user.
 
-const DELIVERIES_KEY_PREFIX = "ss-deliv-";
+const DELIVERIES_KEY_PREFIX = "ss-deliv-v3-";
 
-export interface CachedDeliveriesData {
-  purchase: PassPurchase | null;
-  balance: { total_purchased: number; total_used: number } | null;
-  addresses: DeliveryAddress[];
-  meals: InitMeal[];
-  schedules: DeliverySchedule[];
-  slots: TimeSlot[];
-  logs: DeliveryLog[];
-  deliveriesPaused?: boolean;
-}
+export type CachedDeliveriesData = DeliveriesInitResponse["data"];
 
 export function readDeliveriesCache(userId: string): CachedDeliveriesData | null {
   try {
@@ -366,10 +333,14 @@ export function writeProfileIdentityCache(
 // ─── Profile subtitles cache ──────────────────────────────────────────────────
 // Per-user key — counts change per account.
 
-const PROFILE_SUBTITLES_KEY_PREFIX = "ss-prof-sub-";
+const PROFILE_SUBTITLES_KEY_PREFIX = "ss-prof-sub-v3-";
 
 export interface CachedProfileSubtitles {
-  passesLeft: number;
+  bowlsLeft: number;
+  /** "Bowls left", or "Left" across categories counted in different words. */
+  leftLabel: string;
+  /** The subscription row's subtitle, e.g. "4 bowls left". */
+  detail: string;
   addressCount: number;
   invoiceCount: number;
   unreadCount: number;

@@ -18,7 +18,7 @@ const WHAT_GETS_DELETED = [
   'Profile & personal details',
   'All saved addresses',
   'Delivery history & logs',
-  'Active plans & wallet balance',
+  'Your subscription and any bowls left',
   'Dietary preferences',
 ];
 

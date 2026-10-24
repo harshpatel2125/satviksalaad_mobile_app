@@ -20,11 +20,11 @@ import { useAuth } from '@/context/auth';
 import { useTheme } from '@/hooks/use-theme';
 import { optimizedImageSource } from '@/lib/image-url';
 import { readHomeCache } from '@/lib/home-cache';
-import type { HomeCriticalResponse } from '@/types/api';
+import type { HomeCriticalResponse, SubscriptionsResponse } from '@/types/api';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const AVAILABILITY = 'Monday to Saturday';
+const AVAILABILITY = 'Lunch & dinner';
 
 // ─── Nutrition cell ───────────────────────────────────────────────────────────
 
@@ -104,20 +104,15 @@ export default function MealDetailScreen() {
     (showCarbs    && carbs > 0) ||
     (showFat      && fat > 0);
 
-  // Read pass balance synchronously — in-memory React Query cache first, MMKV fallback.
+  // Read synchronously — in-memory React Query cache first, MMKV fallback.
   // No API call needed: user always arrives here from home/menu tabs where home data is loaded.
-  const hasActivePass = useMemo(() => {
-    const homeData = queryClient.getQueryData<HomeCriticalResponse>(['home']);
-    if (homeData?.data?.balance) {
-      const b = homeData.data.balance;
-      return b.total_purchased - b.total_used > 0;
-    }
+  const { hasSubscription, endedSubscription } = useMemo(() => {
     const userId = session?.user?.id ?? null;
-    if (!userId) return false;
-    const cache = readHomeCache(userId);
-    if (!cache?.balance) return false;
-    return cache.balance.totalPurchased - cache.balance.totalUsed > 0;
-  }, [queryClient, session?.user?.id]);
+    const home = queryClient.getQueryData<HomeCriticalResponse>(['home'])?.data ?? (userId ? readHomeCache(userId)?.home : null);
+    const everHeld = queryClient.getQueryData<SubscriptionsResponse>(['subscriptions'])?.data ?? [];
+    const has = (home?.subscriptions ?? []).some((s) => s.category === category);
+    return { hasSubscription: has, endedSubscription: !has && everHeld.some((s) => s.category === category) };
+  }, [queryClient, session?.user?.id, category]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -238,12 +233,14 @@ export default function MealDetailScreen() {
             <InfoRow icon="checkmark-circle-outline" label="DIETARY" value="100% Pure Veg · No preservatives" colors={colors} fonts={fonts} />
           </View>
 
-          {/* Plan nudge — only shown when no active pass */}
-          {!hasActivePass && (
+          {/* Plan nudge — only shown without a subscription */}
+          {!hasSubscription && (
             <View style={[styles.nudgeCard, { backgroundColor: isFruit ? colors.orangeBg : colors.primaryTint, borderColor: 'transparent' }]}>
               <Ionicons name="sparkles-outline" size={16} color={isFruit ? colors.orange : colors.primaryDark} />
               <Text style={[styles.nudgeText, { color: isFruit ? colors.orange : colors.primaryDark, fontFamily: fonts.body }]}>
-                This bowl is part of our meal plans. Buy a plan to get it delivered.
+                {endedSubscription
+                  ? 'This bowl is part of our subscriptions. Renew to get it delivered.'
+                  : 'This bowl is part of our subscriptions. Choose a plan to get it delivered.'}
               </Text>
             </View>
           )}
@@ -253,7 +250,7 @@ export default function MealDetailScreen() {
       {/* ── Fixed bottom CTA ── */}
       {(
         <BottomActionBar style={{ backgroundColor: colors.background, borderTopWidth: 0 }}>
-          {hasActivePass ? (
+          {hasSubscription ? (
             <TouchableOpacity
               style={[styles.ctaBtn, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
               activeOpacity={0.85}
@@ -267,10 +264,10 @@ export default function MealDetailScreen() {
             <TouchableOpacity
               style={[styles.ctaBtn, { backgroundColor: colors.primary }]}
               activeOpacity={0.85}
-              onPress={() => router.push('/buy-passes')}>
+              onPress={() => router.push('/plans')}>
               <Ionicons name="bag-handle-outline" size={18} color="#fff" />
               <Text style={[styles.ctaBtnText, { fontFamily: fonts.bodySemibold }]}>
-                Get a plan
+                {endedSubscription ? 'Renew' : 'Choose a plan'}
               </Text>
             </TouchableOpacity>
           )}

@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -17,17 +16,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/components/ui/screen-header';
 
 import { DeliveryHistorySkeleton } from '@/components/skeletons/delivery-history-skeleton';
-import { Skeleton } from '@/components/skeleton';
 import { FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { optimizedImageSource } from '@/lib/image-url';
 import { deliveryHistoryApi } from '@/lib/api';
+import { historyItem } from '@/lib/subscription-view';
 import { trackScreenOpened } from '@/lib/analytics';
 import { readDeliveryHistoryCache, writeDeliveryHistoryCache } from '@/lib/home-cache';
 import { slotTime, useSlots } from '@/lib/slots';
 import { useAuth } from '@/context/auth';
 import type { DeliveryHistoryLog } from '@/types/api';
-import { bowlFor } from '@/components/screens/deliveries/delivery-row';
+import { ItemThumb } from '@/components/screens/deliveries/delivery-day-card';
+import { deliveryDetailParams } from '@/components/screens/subscriptions/subscription-info';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,29 +56,6 @@ function statusStyle(status: string, colors: ReturnType<typeof useTheme>['colors
     default:                 return { bg: colors.surface2,  fg: colors.textMuted,   icon: 'time-outline' as const,        label: 'Scheduled' };
   }
 }
-
-// ─── MealThumb ────────────────────────────────────────────────────────────────
-
-function MealThumb({ imageUrl }: { imageUrl: string | null }) {
-  const [loaded, setLoaded] = useState(false);
-  return (
-    <View style={[styles.thumb, { overflow: 'hidden' }]}>
-      <Image
-        source={optimizedImageSource(imageUrl) ?? require('@/assets/images/hero-image.png')}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        cachePolicy="memory-disk"
-        transition={200}
-        onLoad={() => setLoaded(true)}
-      />
-      {!loaded && (
-        <Skeleton width={48} height={48} radius={10} style={{ position: 'absolute', top: 0, left: 0 }} />
-      )}
-    </View>
-  );
-}
-
-const HISTORY_BOWL = bowlFor(null);
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
@@ -306,26 +282,13 @@ export default function DeliveryHistoryScreen() {
                   ]}
                 >
                   {entries.map((log, i) => {
-                    const meal = HISTORY_BOWL;
+                    const item = historyItem(log);
                     const s = statusStyle(log.status, colors);
                     return (
                       <TouchableOpacity
                         key={log.id}
                         activeOpacity={0.7}
-                        onPress={() =>
-                          router.push({
-                            pathname: "/delivery-detail",
-                            params: {
-                              id: log.id,
-                              date: log.delivery_date,
-                              slot: log.delivery_slot,
-                              status: log.status,
-                              quantity: String(log.quantity ?? 1),
-                              mealName: meal.name,
-                              mealImageUrl: meal.image_url ?? "",
-                            },
-                          })
-                        }
+                        onPress={() => router.push({ pathname: "/delivery-detail", params: deliveryDetailParams(item) })}
                         style={[
                           styles.row,
                           i > 0 && {
@@ -336,7 +299,7 @@ export default function DeliveryHistoryScreen() {
                       >
                         {/* Meal image */}
                         <View style={log.status !== "delivered" ? { opacity: 0.5 } : undefined}>
-                          <MealThumb imageUrl={meal.image_url} />
+                          <ItemThumb item={item} />
                         </View>
 
                         {/* Info */}
@@ -350,7 +313,7 @@ export default function DeliveryHistoryScreen() {
                               },
                             ]}
                           >
-                            {meal.name}
+                            {item.name}
                           </Text>
                           <Text
                             style={[
@@ -451,7 +414,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
     paddingHorizontal: Spacing[4], paddingVertical: 14,
   },
-  thumb:    { width: 48, height: 48, borderRadius: 10, flexShrink: 0 },
   info:     { flex: 1, gap: 2 },
   mealName: { fontSize: FontSize.sm },
   dateText: { fontSize: FontSize.xs },

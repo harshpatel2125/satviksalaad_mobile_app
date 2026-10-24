@@ -38,12 +38,12 @@ type DbNotification = {
 
 // ─── Filter config ────────────────────────────────────────────────────────────
 
-const FILTERS = ['All', 'Deliveries', 'Wallet', 'Offers'] as const;
+const FILTERS = ['All', 'Deliveries', 'Payments', 'Offers'] as const;
 type Filter = (typeof FILTERS)[number];
 
 function filterToType(f: Filter): DbNotification['type'] | null {
   if (f === 'Deliveries') return 'delivery';
-  if (f === 'Wallet') return 'payment';
+  if (f === 'Payments') return 'payment';
   if (f === 'Offers') return 'promo';
   return null;
 }

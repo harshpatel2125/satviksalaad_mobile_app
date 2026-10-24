@@ -9,7 +9,6 @@ import type {
   DeliveriesActionResponse,
   DeliveriesInitResponse,
   DeliveryHistoryResponse,
-  DeliveryLogsResponse,
   DeliverySchedule,
   AppSettingsResponse,
   HomeCriticalResponse,
@@ -21,12 +20,13 @@ import type {
   OtpSendResponse,
   OtpVerifyResponse,
   MobileSignInResponse,
-  PassesResponse,
-  PassPurchase,
   PlansResponse,
   SlotsResponse,
-  PreferredDaysResponse,
   ProfileResponse,
+  SubscriptionPreviewPayload,
+  SubscriptionPreviewResponse,
+  SubscriptionSyncResponse,
+  SubscriptionsResponse,
   VerifyPaymentPayload,
   VerifyPaymentResponse,
   VideosResponse,
@@ -41,6 +41,21 @@ import { clearSession, getAccessToken } from './auth-session';
 export { BASE_URL };
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
+
+/** A request the server refused; `code` and `body` carry what it sent besides the message. */
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: string | null;
+  readonly body: Record<string, unknown>;
+
+  constructor(message: string, status: number, body: Record<string, unknown>) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = typeof body.code === 'string' ? body.code : null;
+    this.body = body;
+  }
+}
 
 export async function authHeader(): Promise<Record<string, string>> {
   const token = await getAccessToken();
@@ -98,7 +113,7 @@ export async function apiFetch<T>(
   // The auth endpoints answer errors with a non-2xx status and a `message`.
   const asAny = (json ?? {}) as Record<string, unknown>;
   if (asAny.success === false || (!res.ok && asAny.success !== true)) {
-    throw new Error(String(asAny.error ?? asAny.message ?? 'Request failed'));
+    throw new ApiError(String(asAny.error ?? asAny.message ?? 'Request failed'), res.status, asAny);
   }
 
   return json;
@@ -188,24 +203,18 @@ export const addressesApi = {
     }),
 };
 
-// ─── Passes ───────────────────────────────────────────────────────────────────
+// ─── Subscriptions ────────────────────────────────────────────────────────────
 
-export const passesApi = {
-  list: () => apiFetch<PassesResponse>('/api/v1/user/passes'),
+export const subscriptionsApi = {
+  list: () => apiFetch<SubscriptionsResponse>('/api/v1/subscriptions'),
 
-  updatePreferredDays: (id: string, preferred_days: string[]) =>
-    apiFetch<PreferredDaysResponse>(`/api/v1/passes/${id}/preferred-days`, {
-      method: 'PUT',
-      body: JSON.stringify({ preferred_days }),
-    }),
+  sync: () =>
+    apiFetch<SubscriptionSyncResponse>('/api/v1/subscriptions/sync', { method: 'POST' }),
 
-  heal: () =>
-    apiFetch<{ success: boolean; generated: number }>('/api/v1/passes/heal', { method: 'POST' }),
-
-  changeSlot: (id: string, slot: string) =>
-    apiFetch<{ success: boolean; slot: string; updatedLogs: number; applyFrom: string }>(`/api/v1/passes/${id}/change-slot`, {
+  preview: (payload: SubscriptionPreviewPayload) =>
+    apiFetch<SubscriptionPreviewResponse>('/api/v1/subscriptions/preview', {
       method: 'POST',
-      body: JSON.stringify({ slot }),
+      body: JSON.stringify(payload),
     }),
 };
 
@@ -302,71 +311,35 @@ export const schedulesApi = {
       delivery_address_id: string | null;
     }>,
   ) =>
-    apiFetch<{ success: boolean; data: DeliverySchedule; logs_regenerated?: number }>(
+    apiFetch<{ success: boolean; data: DeliverySchedule; logs_regenerated?: number; applies_from?: string }>(
       `/api/v1/schedules/${id}`,
       { method: 'PUT', body: JSON.stringify(payload) },
     ),
 };
 
-// ─── Delivery Logs ────────────────────────────────────────────────────────────
-
-export const deliveryLogsApi = {
-  list: () => apiFetch<DeliveryLogsResponse>('/api/v1/deliveries/logs'),
-};
-
-// ─── Wallet (combined passes + delivery logs) ─────────────────────────────────
-
-export type WalletInitData = {
-  balance: { total_purchased: number; total_used: number } | null;
-  purchases: PassPurchase[];
-  stats: { delivered: number; upcoming: number; skipped: number };
-};
-
-export const walletApi = {
-  init: async (): Promise<WalletInitData> => {
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-    const [passesRes, logsRes] = await Promise.all([
-      passesApi.list(),
-      deliveryLogsApi.list(),
-    ]);
-    const logs = logsRes.data;
-    return {
-      balance: {
-        total_purchased: passesRes.meta.balance.total_purchased,
-        total_used:      passesRes.meta.balance.total_used,
-      },
-      purchases: passesRes.data,
-      stats: {
-        delivered: logs.filter(l => l.status === 'delivered').length,
-        upcoming:  logs.filter(l => l.delivery_date >= today && (l.status === 'scheduled' || l.status === 'out_for_delivery')).length,
-        skipped:   logs.filter(l => l.status === 'skipped').length,
-      },
-    };
-  },
-};
-
 // ─── Deliveries ───────────────────────────────────────────────────────────────
+
+/**
+ * Which deliveries an action touches: one item by `logId`, every category at
+ * one time of day by `date` and `deliverySlot`, or the whole day by `date`.
+ */
+export type DeliveryActionParams = {
+  action: 'skip' | 'unskip' | 'update';
+  logId?: string;
+  date?: string;
+  deliverySlot?: string;
+  category?: string;
+  quantity?: number;
+};
 
 export const deliveriesApi = {
   init: () => apiFetch<DeliveriesInitResponse>('/api/v1/deliveries/init'),
 
-  action: (params: {
-    action: 'skip' | 'unskip' | 'update' | 'increase_swap' | 'decrease_expand';
-    passId?: string;
-    date?: string;
-    deliveryDate?: string;
-    deliverySlot?: string;
-    quantity?: number;
-  }) => apiFetch<DeliveriesActionResponse>('/api/v1/deliveries/action', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  }),
-
-  scheduleExtra: (date: string) =>
-    apiFetch<{ success: boolean; log: { id: string; delivery_date: string; delivery_slot: string; status: string; quantity: number }; swappedFrom: string }>(
-      '/api/v1/deliveries/schedule-extra',
-      { method: 'POST', body: JSON.stringify({ date }) },
-    ),
+  action: (params: DeliveryActionParams) =>
+    apiFetch<DeliveriesActionResponse>('/api/v1/deliveries/action', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
 };
 
 // ─── Delivery Partner ─────────────────────────────────────────────────────────
@@ -398,7 +371,7 @@ export const deliveryPartnerApi = {
 // ─── Home ─────────────────────────────────────────────────────────────────────
 
 export const homeApi = {
-  // Per-user critical data: balance, purchase, schedules, logs.
+  // Per-user critical data: current and next subscription, schedule, logs.
   critical: () => apiFetch<HomeCriticalResponse>('/api/v1/home/init'),
 
   // Same for every user: meals and slots. No auth required.

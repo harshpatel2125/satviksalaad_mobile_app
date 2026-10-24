@@ -1,9 +1,13 @@
+import type { DeliveryStatus, HomeData } from '@/types/api';
+
 import type { HomeCacheData } from './home-cache';
 
 export interface PredictedHomeState {
-  todayStatus: 'no_delivery' | 'preparing' | 'out_for_delivery' | 'delivered';
-  totalPurchased: number;
-  passesRemaining: number;
+  /**
+   * The cached home data with today's deliveries moved on as the clock says,
+   * and the bowls those took off their subscriptions.
+   */
+  home: HomeData;
 }
 
 export interface PredictiveEngineInput {
@@ -30,58 +34,42 @@ function nowMinutesIST(now: Date): number {
 export function predictHomeState({ cache, now }: PredictiveEngineInput): PredictedHomeState {
   const todayStr = istDateString(now);
   const nowMins = nowMinutesIST(now);
+  const { home } = cache;
 
-  const todayLog = cache.logs.find((l) => l.deliveryDate === todayStr) ?? null;
+  // On the way from just before the slot opens, delivered once it closes,
+  // until the server says otherwise.
+  function predict(slotId: string): DeliveryStatus {
+    const slot = cache.slots.find((s) => s.id === slotId);
+    if (!slot) return 'scheduled';
+    if (nowMins >= slot.endMinutes) return 'delivered';
+    if (nowMins >= slot.startMinutes - 10) return 'out_for_delivery';
+    return 'scheduled';
+  }
 
-  const slotId = todayLog?.deliverySlot ?? cache.schedule?.deliverySlot ?? null;
-  const slot = slotId ? (cache.slots.find((s) => s.id === slotId) ?? null) : null;
-
-  let todayStatus: PredictedHomeState['todayStatus'] = 'no_delivery';
-
-  if (todayLog) {
-    if (todayLog.status === 'delivered') {
-      todayStatus = 'delivered';
-    } else if (todayLog.status === 'out_for_delivery') {
-      todayStatus = 'out_for_delivery';
-    } else if (todayLog.status === 'skipped' || todayLog.status === 'missed') {
-      todayStatus = 'no_delivery';
-    } else if (todayLog.status === 'scheduled') {
-      if (slot) {
-        const prepStart = slot.startMinutes - 10;
-        if (nowMins >= slot.endMinutes) {
-          // Past slot end — predict delivered, pending API confirmation
-          todayStatus = 'delivered';
-        } else if (nowMins >= prepStart) {
-          todayStatus = 'out_for_delivery';
-        } else {
-          todayStatus = 'preparing';
-        }
-      } else {
-        todayStatus = 'preparing';
-      }
+  const deliveredBy = new Map<string, number>();
+  const logs = home.logs.map((log) => {
+    if (log.delivery_date !== todayStr || log.status !== 'scheduled') return log;
+    const status = predict(log.delivery_slot);
+    if (status === log.status) return log;
+    if (status === 'delivered' && log.subscription_id) {
+      deliveredBy.set(log.subscription_id, (deliveredBy.get(log.subscription_id) ?? 0) + log.quantity);
     }
-  }
+    return { ...log, status };
+  });
 
-  const totalPurchased = cache.balance?.totalPurchased ?? 0;
-
-  // Base remaining from the last-known server balance
-  let passesRemaining = cache.balance
-    ? Math.max(0, cache.balance.totalPurchased - cache.balance.totalUsed)
-    : 0;
-
-  // The cached balance only counts deliveries the server has recorded, so a
-  // delivery predicted from the clock is subtracted here to keep them in step.
-  const todayWasTimePredicted =
-    todayLog !== null &&
-    todayLog.status === 'scheduled' &&
-    todayStatus === 'delivered';
-  if (todayWasTimePredicted && todayLog !== null) {
-    passesRemaining = Math.max(0, passesRemaining - todayLog.quantity);
-  }
+  // The cached counts only know deliveries the server has recorded.
+  const adjust = <T extends { id: string; bowls_left: number }>(sub: T): T => {
+    const taken = deliveredBy.get(sub.id) ?? 0;
+    return taken > 0 ? { ...sub, bowls_left: Math.max(0, sub.bowls_left - taken) } : sub;
+  };
 
   return {
-    todayStatus,
-    totalPurchased,
-    passesRemaining,
+    home: {
+      ...home,
+      subscription: home.subscription ? adjust(home.subscription) : null,
+      next_subscription: home.next_subscription ? adjust(home.next_subscription) : null,
+      subscriptions: home.subscriptions.map(adjust),
+      logs,
+    },
   };
 }

@@ -19,7 +19,7 @@ export function SectionHeader({ label, action, onAction }: SectionHeaderProps) {
         {label.toUpperCase()}
       </Text>
       {action && (
-        <TouchableOpacity onPress={onAction} activeOpacity={0.7}>
+        <TouchableOpacity onPress={onAction} activeOpacity={0.7} hitSlop={{ top: 14, bottom: 14, left: 12, right: 12 }}>
           <Text style={[s.action, { color: colors.primary, fontFamily: fonts.bodyMedium }]}>
             {action}
           </Text>

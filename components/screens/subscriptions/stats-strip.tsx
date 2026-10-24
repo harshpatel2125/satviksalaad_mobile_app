@@ -8,7 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 interface StatsStripProps {
   delivered: number;
-  upcoming: number;
+  scheduled: number;
   skipped: number;
   loading?: boolean;
 }
@@ -46,7 +46,7 @@ function StatCard({
   );
 }
 
-export function StatsStrip({ delivered, upcoming, skipped, loading = false }: StatsStripProps) {
+export function StatsStrip({ delivered, scheduled, skipped, loading = false }: StatsStripProps) {
   const { colors } = useTheme();
 
   return (
@@ -59,8 +59,8 @@ export function StatsStrip({ delivered, upcoming, skipped, loading = false }: St
         loading={loading}
       />
       <StatCard
-        value={upcoming}
-        label="Upcoming"
+        value={scheduled}
+        label="Coming up"
         numColor={colors.primary}
         bg={colors.primaryBg}
         loading={loading}

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   ActivityIndicator,
   ScrollView,
@@ -15,11 +16,19 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 
 import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useAlert } from '@/context/alert';
+import { ItemThumb } from '@/components/screens/deliveries/delivery-day-card';
+import { useSkip } from '@/components/screens/deliveries/use-skip';
+import { errorText, refusalButtons, storeActionResult } from '@/components/screens/subscriptions/subscription-info';
 import { deliveriesApi } from "@/lib/api";
 import { optimizedImageSource } from '@/lib/image-url';
-import { queryClient } from "@/lib/query-client";
+import { CACHE_TTL, queryClient } from "@/lib/query-client";
 import { slotLabel, slotLabelPlain, useSlots } from '@/lib/slots';
+import { canChangeDelivery, cutoffLabel } from '@/lib/delivery-rules';
+import { DEFAULT_UNITS, changesClosedText, countOf } from '@/lib/subscription-view';
 import { useTheme } from '@/hooks/use-theme';
+
+/** The most one delivery may carry; the server holds the same limit. */
+const MAX_QUANTITY = 4;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -29,28 +38,6 @@ function todayISTStr() {
 
 function tomorrowISTStr() {
   return new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-}
-
-function istHourNow(): number {
-  const s = new Date().toLocaleString("en-US", {
-    timeZone: "Asia/Kolkata",
-    hour: "2-digit",
-    hour12: false,
-  });
-  return parseInt(s, 10);
-}
-
-function canEditDelivery(dateStr: string): boolean {
-  const today = todayISTStr();
-  if (dateStr <= today) return false;
-  const tomorrow = tomorrowISTStr();
-  if (dateStr === tomorrow && istHourNow() >= 23) return false;
-  return true;
-}
-
-function isTomorrowLocked(dateStr: string): boolean {
-  const tomorrow = tomorrowISTStr();
-  return dateStr === tomorrow && istHourNow() >= 23;
 }
 
 function formatShortDate(iso: string): string {
@@ -148,21 +135,31 @@ export default function DeliveryDetailScreen() {
     date?: string;
     slot?: string;
     status?: string;
-    passPurchaseId?: string;
     quantity?: string;
     mealName?: string;
     mealImageUrl?: string;
+    categoryName?: string;
+    unitSingular?: string;
+    unitPlural?: string;
     addressLine?: string;
   }>();
 
-  const [skipLoading, setSkipLoading]         = useState(false);
+  const { busy, run } = useSkip();
+  const skipLoading = busy !== null;
+  const [quantityLoading, setQuantityLoading] = useState(false);
 
   const id = params.id ?? "";
   const date = params.date ?? "";
   const slot = params.slot ?? "noon";
-  const status = params.status ?? "scheduled";
-  const passPurchaseId = params.passPurchaseId ?? "";
-  const quantity = Math.max(1, parseInt(params.quantity ?? "1", 10));
+  // The latest copy of this delivery, so a skip, an undo or a new quantity shows at once.
+  const { data: deliveries } = useQuery({ queryKey: ["deliveries"], queryFn: deliveriesApi.init, staleTime: CACHE_TTL.deliveries });
+  const live = deliveries?.data.logs.find((l) => l.id === id);
+  const status: string = live?.status ?? params.status ?? "scheduled";
+  const quantity = live?.quantity ?? Math.max(1, parseInt(params.quantity ?? "1", 10));
+  const unit = live?.unit ?? (params.unitSingular && params.unitPlural
+    ? { singular: params.unitSingular, plural: params.unitPlural }
+    : DEFAULT_UNITS);
+  const categoryName = params.categoryName ?? "";
   const mealName =
     params.mealName && params.mealName.length > 0
       ? params.mealName
@@ -173,8 +170,9 @@ export default function DeliveryDetailScreen() {
       : null;
   const addressLine = params.addressLine ?? "";
 
-  const editable = canEditDelivery(date);
-  const locked = isTomorrowLocked(date);
+  const editable = !!date && canChangeDelivery(date, slot);
+  // Closed before its day has come; on the day itself the scheduled note shows instead.
+  const locked = !editable && date > todayISTStr();
 
   const isScheduled = status === "scheduled";
   const isDelivered = status === "delivered";
@@ -182,9 +180,8 @@ export default function DeliveryDetailScreen() {
   const isMissed = status === "missed";
   const isSkipped = status === "skipped";
 
-  // Skip and restore need the plan, which not every way into this screen passes.
-  const canSkip = isScheduled && editable && !!passPurchaseId;
-  const canUnskip = isSkipped && editable && !!passPurchaseId;
+  const canSkip = isScheduled && editable;
+  const canUnskip = isSkipped && editable;
   const showLock = (isScheduled || isSkipped) && !editable && locked;
 
   // Hero colors
@@ -228,46 +225,26 @@ export default function DeliveryDetailScreen() {
           ? "close-circle-outline"
           : "calendar-outline";
 
-  async function handleSkip() {
-    if (!passPurchaseId || !date || skipLoading) return;
-    showAlert(
-      "Skip this delivery?",
-      "The meal will go back to your wallet. The next available day will be scheduled.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Yes, skip",
-          style: "destructive",
-          onPress: async () => {
-            setSkipLoading(true);
-            try {
-              const result = await deliveriesApi.action({ action: "skip", passId: passPurchaseId, date, deliverySlot: params.slot });
-              queryClient.setQueryData(["deliveries"], result);
-              queryClient.setQueryData(["home"], { success: true, data: result.homeData });
-              router.back();
-            } catch {
-              showAlert("Error", "Could not skip delivery. Please try again.");
-            } finally {
-              setSkipLoading(false);
-            }
-          },
-        },
-      ],
-    );
+  function handleSkip(action: "skip" | "unskip") {
+    if (!id || skipLoading) return;
+    void run(id, { action, logId: id });
   }
 
-  async function handleUnskip() {
-    if (!passPurchaseId || !date || skipLoading) return;
-    setSkipLoading(true);
+  async function changeQuantity(next: number) {
+    if (!id || quantityLoading || next < 1 || next > MAX_QUANTITY) return;
+    setQuantityLoading(true);
     try {
-      const result = await deliveriesApi.action({ action: "unskip", passId: passPurchaseId, date, deliverySlot: params.slot });
-      queryClient.setQueryData(["deliveries"], result);
-      queryClient.setQueryData(["home"], { success: true, data: result.homeData });
-      router.back();
-    } catch {
-      showAlert("Error", "Could not restore delivery. Please try again.");
+      const result = await deliveriesApi.action({ action: "update", logId: id, deliverySlot: slot, quantity: next });
+      storeActionResult(queryClient, result);
+      showAlert("Done", result.message ?? `This delivery now brings ${countOf(next, unit)}.`);
+    } catch (err) {
+      showAlert(
+        "Not changed",
+        errorText(err, "Could not change this delivery. Please try again."),
+        refusalButtons(err, () => router.push("/support")),
+      );
     } finally {
-      setSkipLoading(false);
+      setQuantityLoading(false);
     }
   }
 
@@ -354,14 +331,7 @@ export default function DeliveryDetailScreen() {
                 contentFit="cover"
               />
             ) : (
-              <View
-                style={[
-                  styles.mealImagePlaceholder,
-                  { backgroundColor: colors.primaryTint },
-                ]}
-              >
-                <Text style={{ fontSize: 28 }}>🥗</Text>
-              </View>
+              <ItemThumb item={{ image_url: null, categoryImageUrl: null, unit }} size={72} />
             )}
             <View style={{ flex: 1 }}>
               <Text
@@ -378,8 +348,13 @@ export default function DeliveryDetailScreen() {
                   { color: colors.textMuted, fontFamily: fonts.body },
                 ]}
               >
-                {quantity} {quantity === 1 ? "bowl" : "bowls"}
+                {countOf(quantity, unit)}
               </Text>
+              {categoryName ? (
+                <Text style={[styles.mealMeta, { color: colors.textMuted, fontFamily: fonts.body, marginTop: -Spacing[1] }]}>
+                  {categoryName}
+                </Text>
+              ) : null}
               <View
                 style={[styles.slotBadge, { backgroundColor: colors.surface2 }]}
               >
@@ -485,8 +460,8 @@ export default function DeliveryDetailScreen() {
               ]}
             >
               {canUnskip
-                ? "This delivery is skipped. You can restore it until 11 PM the night before."
-                : "This delivery was skipped. The meal stays in your wallet."}
+                ? `This delivery is skipped. You can restore it until ${cutoffLabel(slot)}.`
+                : "This delivery was skipped. It moved to the end of your subscription."}
             </Text>
           </View>
         )}
@@ -542,7 +517,6 @@ export default function DeliveryDetailScreen() {
           </View>
         )}
 
-        {/* Locked banner (11 PM cutoff) */}
         {showLock && (
           <View
             style={[
@@ -561,8 +535,7 @@ export default function DeliveryDetailScreen() {
                 { color: colors.textMuted, fontFamily: fonts.body },
               ]}
             >
-              Changes for tomorrow are locked after 11 PM. Contact support if
-              you need help.
+              {changesClosedText(slot)}. Message us if you need help.
             </Text>
           </View>
         )}
@@ -570,27 +543,55 @@ export default function DeliveryDetailScreen() {
         {/* 5. Actions */}
         <View style={styles.actions}>
           {canSkip && (
+            <View style={[styles.card, styles.qtyCard, { backgroundColor: colors.surface, borderWidth: 0 }, CardEdge]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.mealName, { color: colors.text, fontFamily: fonts.bodySemibold }]}>How many</Text>
+                <Text style={[styles.qtyHint, { color: colors.textMuted, fontFamily: fonts.body }]}>
+                  Extra ones come from the end of your subscription.
+                </Text>
+              </View>
+              <View style={styles.qtyRow}>
+                <TouchableOpacity
+                  style={[styles.qtyBtn, { borderColor: colors.border }, (quantityLoading || quantity <= 1) && { opacity: 0.4 }]}
+                  onPress={() => void changeQuantity(quantity - 1)}
+                  disabled={quantityLoading || quantity <= 1}
+                  accessibilityRole="button"
+                  accessibilityLabel={`One ${unit.singular} fewer`}
+                >
+                  <Ionicons name="remove" size={18} color={colors.text} />
+                </TouchableOpacity>
+                <View style={styles.qtyValue}>
+                  {quantityLoading ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <Text style={[styles.qtyText, { color: colors.text, fontFamily: fonts.display }]}>{quantity}</Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={[styles.qtyBtn, { borderColor: colors.border }, (quantityLoading || quantity >= MAX_QUANTITY) && { opacity: 0.4 }]}
+                  onPress={() => void changeQuantity(quantity + 1)}
+                  disabled={quantityLoading || quantity >= MAX_QUANTITY}
+                  accessibilityRole="button"
+                  accessibilityLabel={`One ${unit.singular} more`}
+                >
+                  <Ionicons name="add" size={18} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          {canSkip && (
             <TouchableOpacity
               activeOpacity={0.85}
-              style={[styles.dangerBtn, { borderColor: colors.error + "80" }]}
-              onPress={handleSkip}
+              style={[styles.dangerBtn, { borderColor: colors.primary }]}
+              onPress={() => handleSkip("skip")}
               disabled={skipLoading}
             >
               {skipLoading ? (
-                <ActivityIndicator size="small" color={colors.error} />
+                <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <>
-                  <Ionicons
-                    name="close-circle-outline"
-                    size={17}
-                    color={colors.error}
-                  />
-                  <Text
-                    style={[
-                      styles.dangerBtnText,
-                      { color: colors.error, fontFamily: fonts.bodySemibold },
-                    ]}
-                  >
+                  <Ionicons name="close-circle-outline" size={18} color={colors.primary} />
+                  <Text style={[styles.dangerBtnText, { color: colors.primary, fontFamily: fonts.bodySemibold }]}>
                     Skip this delivery
                   </Text>
                 </>
@@ -600,22 +601,17 @@ export default function DeliveryDetailScreen() {
           {canUnskip && (
             <TouchableOpacity
               activeOpacity={0.85}
-              style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-              onPress={handleUnskip}
+              style={[styles.dangerBtn, { borderColor: colors.warning, backgroundColor: colors.warningBg }]}
+              onPress={() => handleSkip("unskip")}
               disabled={skipLoading}
             >
               {skipLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={colors.warning} />
               ) : (
                 <>
-                  <Ionicons name="refresh-outline" size={17} color="#fff" />
-                  <Text
-                    style={[
-                      styles.primaryBtnText,
-                      { color: "#fff", fontFamily: fonts.bodySemibold },
-                    ]}
-                  >
-                    Restore delivery
+                  <Ionicons name="arrow-undo-outline" size={18} color={colors.warning} />
+                  <Text style={[styles.dangerBtnText, { color: colors.warning, fontFamily: fonts.bodySemibold }]}>
+                    Undo skip
                   </Text>
                 </>
               )}
@@ -704,13 +700,6 @@ const styles = StyleSheet.create({
 
   mealRow: { flexDirection: "row", alignItems: "center", gap: Spacing[4] },
   mealImage: { width: 72, height: 72, borderRadius: 14 },
-  mealImagePlaceholder: {
-    width: 72,
-    height: 72,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   mealName: { fontSize: FontSize.base, marginBottom: 2 },
   mealMeta: { fontSize: FontSize.sm, marginBottom: Spacing[2] },
   slotBadge: {
@@ -736,15 +725,12 @@ const styles = StyleSheet.create({
   },
 
   actions: { gap: Spacing[3], marginTop: Spacing[1] },
-  primaryBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing[2],
-    height: 52,
-    borderRadius: Radius.full,
-  },
-  primaryBtnText: { fontSize: FontSize.base },
+  qtyCard: { flexDirection: "row", alignItems: "center", gap: Spacing[3] },
+  qtyHint: { fontSize: FontSize.sm },
+  qtyRow: { flexDirection: "row", alignItems: "center", gap: Spacing[2] },
+  qtyBtn: { width: 44, height: 44, borderRadius: Radius.md, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  qtyValue: { minWidth: 32, alignItems: "center" },
+  qtyText: { fontSize: FontSize.lg },
   dangerBtn: {
     flexDirection: "row",
     alignItems: "center",

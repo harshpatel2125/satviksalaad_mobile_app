@@ -21,6 +21,7 @@ import { FontWeight, Radius } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import { useTheme } from '@/hooks/use-theme';
 import { trackOnboardingCompleted } from '@/lib/analytics';
+import { DINNER_SLOT, LUNCH_SLOT, cutoffLabel } from '@/lib/delivery-rules';
 import { formatTimeRange, useSlots } from '@/lib/slots';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -42,31 +43,31 @@ const ILLUS_GRADIENT = { light: ['#f0f6f2', '#e6f0e9'], dark: ['#1e2a24', '#1721
 
 const SLIDES = [
   {
-    id: "pass",
-    tag: "YOUR MEAL PLAN",
-    title: "Fresh salads,\nno subscription.",
-    body: "Buy a pack of salads and use it on the days you choose. No auto-renew, no lock-in, no surprises.",
+    id: "subscription",
+    tag: "YOUR SUBSCRIPTION",
+    title: "Subscriptions that\nfit your week.",
+    body: "3-day trial, weekly or monthly. Nothing renews by itself.",
     cta: "Next →",
   },
   {
     id: "skip",
     tag: "SKIP ANYTIME",
     title: "Skip any delivery.\nZero guilt.",
-    body: "Plans change. Skip until 11 PM the night before — unlimited times. Your meal credit is always saved.",
+    body: "Skip a day before its cutoff and that bowl moves to the end (up to 15 extra days).",
     cta: "Next →",
   },
   {
     id: "schedule",
     tag: "YOUR SCHEDULE",
     title: "You pick the days\n& slot.",
-    body: "Mon to Sat — choose the days that suit you, for lunch or dinner. Change anytime.",
+    body: "Mon to Sun — choose the days that suit you, for lunch or dinner. Change anytime.",
     cta: "Let's go →",
   },
 ] as const;
 
-// ─── Slide 1: Pass card ───────────────────────────────────────────────────────
+// ─── Slide 1: Subscription card ───────────────────────────────────────────────
 
-function PassArt({
+function SubscriptionArt({
   isActive,
   colors,
   isDark,
@@ -104,12 +105,12 @@ function PassArt({
   }));
 
   return (
-    <View style={artS.passOuter}>
+    <View style={artS.subOuter}>
       {/* Fixed-width wrapper so behind card fills correctly */}
       <View style={{ width: W * 0.68 }}>
         <Animated.View
           style={[
-            artS.passCardBehind,
+            artS.subCardBehind,
             {
               backgroundColor: isDark ? '#27352e' : '#d5e5da',
               borderColor: isDark ? '#313f38' : 'transparent',
@@ -120,7 +121,7 @@ function PassArt({
         />
         <Animated.View
           style={[
-            artS.passCard,
+            artS.subCard,
             {
               backgroundColor: colors.surface,
               borderColor: isDark ? '#313f38' : '#e6f0e9',
@@ -128,22 +129,22 @@ function PassArt({
             cardStyle,
           ]}
         >
-          <Text style={[artS.passTag, { color: colors.primary }]}>Satvik Salaad Plan</Text>
-          <Text style={[artS.passDays, { color: colors.text }]}>
+          <Text style={[artS.subTag, { color: colors.primary }]}>Weekly subscription</Text>
+          <Text style={[artS.subDays, { color: colors.text }]}>
             {'6 '}
-            <Text style={[artS.passDaysSub, { color: colors.textMuted }]}>meals</Text>
+            <Text style={[artS.subDaysSub, { color: colors.textMuted }]}>bowls</Text>
           </Text>
-          <View style={[artS.passDivider, { backgroundColor: colors.borderLight }]} />
-          <View style={artS.passBadges}>
-            <View style={[artS.passBadge, { backgroundColor: colors.primaryBg }]}>
-              <Text style={[artS.passBadgeText, { color: colors.primary }]}>Fresh daily</Text>
+          <View style={[artS.subDivider, { backgroundColor: colors.borderLight }]} />
+          <View style={artS.subBadges}>
+            <View style={[artS.subBadge, { backgroundColor: colors.primaryBg }]}>
+              <Text style={[artS.subBadgeText, { color: colors.primary }]}>Fresh daily</Text>
             </View>
-            <View style={[artS.passBadge, { backgroundColor: colors.primaryBg }]}>
-              <Text style={[artS.passBadgeText, { color: colors.primary }]}>Mon to Sat</Text>
+            <View style={[artS.subBadge, { backgroundColor: colors.primaryBg }]}>
+              <Text style={[artS.subBadgeText, { color: colors.primary }]}>Mon to Sun</Text>
             </View>
           </View>
-          <View style={artS.passNoAuto}>
-            <Text style={[artS.passNoAutoText, { color: colors.textMuted }]}>
+          <View style={artS.subNoAuto}>
+            <Text style={[artS.subNoAutoText, { color: colors.textMuted }]}>
               <Text style={{ color: '#ef4444' }}>{'✗ '}</Text>
               No auto-renew
             </Text>
@@ -261,7 +262,7 @@ function SkipArt({ isActive, colors }: { isActive: boolean; colors: ThemeColors 
       <Animated.View style={badgeStyle}>
         <Text style={[artS.calBadgeText, { color: colors.textMuted }]}>
           {'2 days skipped — '}
-          <Text style={{ color: colors.primary }}>meal credits saved</Text>
+          <Text style={{ color: colors.primary }}>bowls moved to the end</Text>
         </Text>
       </Animated.View>
     </Animated.View>
@@ -560,7 +561,7 @@ export default function OnboardingScreen() {
           />
           {/* Art wrapper with slide animation */}
           <Animated.View style={[artS.artWrapper, artWrapperStyle]}>
-            {activeIdx === 0 && <PassArt isActive={true} colors={colors} isDark={isDark} />}
+            {activeIdx === 0 && <SubscriptionArt isActive={true} colors={colors} isDark={isDark} />}
             {activeIdx === 1 && <SkipArt isActive={true} colors={colors} />}
             {activeIdx === 2 && <DayPickerArt isActive={true} colors={colors} />}
           </Animated.View>
@@ -585,7 +586,7 @@ export default function OnboardingScreen() {
           <View style={s.textArea}>
             <Text style={[s.bodyText, { color: colors.textMuted }]}>{displayBody}</Text>
 
-            {/* Slide 2 only: 11 PM cutoff pill — show once all chars visible */}
+            {/* Slide 2 only: cutoff pill — show once all chars visible */}
             {activeIdx === 1 && allCharsVisible && (
               <View
                 style={[
@@ -594,7 +595,7 @@ export default function OnboardingScreen() {
                 ]}
               >
                 <Text style={[s.cutoffText, { color: isDark ? '#fbbf24' : '#92400e' }]}>
-                  ⏰ Cutoff: 11 PM the night before
+                  ⏰ Lunch by {cutoffLabel(LUNCH_SLOT)} · dinner by {cutoffLabel(DINNER_SLOT)}
                 </Text>
               </View>
             )}
@@ -757,13 +758,13 @@ const artS = StyleSheet.create({
     paddingBottom: 8,
   },
 
-  // Pass card
-  passOuter: {
+  // Subscription card
+  subOuter: {
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
   },
-  passCardBehind: {
+  subCardBehind: {
     position: 'absolute',
     top: 0,
     bottom: 0,
@@ -771,7 +772,7 @@ const artS = StyleSheet.create({
     right: 0,
     borderRadius: 18,
   },
-  passCard: {
+  subCard: {
     width: '100%',
     borderRadius: 18,
     padding: 20,
@@ -783,19 +784,19 @@ const artS = StyleSheet.create({
     shadowRadius: 12,
     elevation: 2,
   },
-  passTag: { fontSize: rf(13), fontWeight: FontWeight.bold, letterSpacing: 1.5 },
-  passDays: {
+  subTag: { fontSize: rf(13), fontWeight: FontWeight.bold, letterSpacing: 1.5 },
+  subDays: {
     fontSize: rf(54),
     fontWeight: FontWeight.bold,
     lineHeight: rf(58),
   },
-  passDaysSub: { fontSize: rf(18), fontWeight: FontWeight.medium },
-  passDivider: { height: 1, marginVertical: 8 },
-  passBadges: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  passBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  passBadgeText: { fontSize: rf(13), fontWeight: FontWeight.semibold },
-  passNoAuto: { marginTop: 8 },
-  passNoAutoText: { fontSize: rf(13) },
+  subDaysSub: { fontSize: rf(18), fontWeight: FontWeight.medium },
+  subDivider: { height: 1, marginVertical: 8 },
+  subBadges: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  subBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  subBadgeText: { fontSize: rf(13), fontWeight: FontWeight.semibold },
+  subNoAuto: { marginTop: 8 },
+  subNoAutoText: { fontSize: rf(13) },
 
   // Calendar
   calWidget: {

@@ -22,7 +22,7 @@ type QuickAction = {
 const QUICK_ACTIONS: QuickAction[] = [
   { icon: 'bicycle-outline', label: 'Delivery issue',  message: 'I have an issue with a delivery.'   },
   { icon: 'leaf-outline',    label: 'Food complaint',  message: 'I have a complaint about my food.'  },
-  { icon: 'wallet-outline',  label: 'Refund request',  message: 'I would like to request a refund.'  },
+  { icon: 'calendar-outline', label: 'Subscription issue', message: 'I want to report a problem with my subscription.' },
   { icon: 'receipt-outline', label: 'Invoice / GST',   message: 'I need help with an invoice / GST.' },
 ];
 

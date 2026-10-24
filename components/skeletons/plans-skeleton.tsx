@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/skeleton';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export function BuyPassesSkeleton() {
+export function PlansSkeleton() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -28,7 +28,7 @@ export function BuyPassesSkeleton() {
         </View>
       </View>
 
-      {/* ── Salad passes section ────────────────────────────────────────────── */}
+      {/* ── Salad plans section ───────────────────────────────────────────── */}
       <View style={styles.section}>
         {/* Section label row */}
         <View style={styles.sectionLabelRow}>
@@ -65,7 +65,7 @@ export function BuyPassesSkeleton() {
               </View>
             ))}
           </View>
-          {/* Bottom row: meal pill */}
+          {/* Bottom row: bowl count pill */}
           <Skeleton width={110} height={32} radius={Radius.full} style={{ marginTop: Spacing[3] }} />
         </View>
 
@@ -98,7 +98,7 @@ export function BuyPassesSkeleton() {
         <View style={styles.schedBlock}>
           <Skeleton width={100} height={11} radius={4} />
           <View style={styles.daysRow}>
-            {[0, 1, 2, 3, 4, 5].map((i) => (
+            {[0, 1, 2, 3, 4, 5, 6].map((i) => (
               <Skeleton key={i} height={36} radius={Radius.md} style={{ flex: 1 }} />
             ))}
           </View>

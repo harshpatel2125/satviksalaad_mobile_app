@@ -2,7 +2,7 @@
   "expo": {
     "name": "Satvik Salaad",
     "slug": "satviksalaad",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/logo/icon.png",
     "scheme": "satviksalaad",
@@ -13,8 +13,8 @@
       "bundleIdentifier": "com.infynixlabs.satviksalaad",
       "googleServicesFile": "./GoogleService-Info.plist",
       "associatedDomains": [
-        "applinks:www.satviksalaad.in",
-        "applinks:satviksalaad.in"
+        "applinks:satviksalaad.com",
+        "applinks:www.satviksalaad.com"
       ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -43,12 +43,12 @@
           "data": [
             {
               "scheme": "https",
-              "host": "www.satviksalaad.in",
+              "host": "satviksalaad.com",
               "pathPrefix": "/app"
             },
             {
               "scheme": "https",
-              "host": "satviksalaad.in",
+              "host": "www.satviksalaad.com",
               "pathPrefix": "/app"
             }
           ],
@@ -61,7 +61,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/logo/logo.png"
+      "favicon": "./assets/logo/logo-mark.png"
     },
     "plugins": [
       "expo-router",
@@ -87,7 +87,7 @@
             "resizeMode": "contain",
             "backgroundColor": "#FBFBF9",
             "dark": {
-              "image": "./assets/logo/logo.png",
+              "image": "./assets/logo/logo-cream.png",
               "imageWidth": 200,
               "resizeMode": "contain",
               "backgroundColor": "#101814"
@@ -99,7 +99,7 @@
             "resizeMode": "contain",
             "backgroundColor": "#FBFBF9",
             "dark": {
-              "image": "./assets/logo/logo.png",
+              "image": "./assets/logo/logo-cream.png",
               "imageWidth": 275,
               "resizeMode": "contain",
               "backgroundColor": "#101814"

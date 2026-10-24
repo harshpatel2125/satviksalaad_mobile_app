@@ -21,7 +21,7 @@ import { FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/them
 import { useTheme } from '@/hooks/use-theme';
 
 export default function NameScreen() {
-  const { colors, fonts } = useTheme();
+  const { colors, fonts, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { prefill } = useLocalSearchParams<{ prefill?: string }>();
@@ -72,7 +72,11 @@ export default function NameScreen() {
           {/* Logo */}
           <View style={styles.logoSection}>
             <Image
-              source={require('@/assets/logo/logo.png')}
+              source={
+                isDark
+                  ? require('@/assets/logo/logo-cream.png')
+                  : require('@/assets/logo/logo.png')
+              }
               style={styles.logo}
               contentFit="contain"
             />
@@ -182,8 +186,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing[7],
   },
   logo: {
-    width: 130,
-    height: 80,
+    width: 176,
+    aspectRatio: 1200 / 504,
   },
 
   heading: {

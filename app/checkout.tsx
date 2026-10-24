@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import RazorpayCheckout from 'react-native-razorpay';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { Text } from '@/components/ui/text';
 import { BottomActionBar } from '@/components/ui/bottom-action-bar';
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -18,7 +19,7 @@ import { Skeleton } from "@/components/skeleton";
 import { Brand, FontSize, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useAlert } from '@/context/alert';
 import { useAuth } from '@/context/auth';
-import { addressesApi, authHeader, ordersApi, paymentsApi, plansApi } from '@/lib/api';
+import { ApiError, addressesApi, authHeader, ordersApi, paymentsApi, plansApi, subscriptionsApi } from '@/lib/api';
 import { readAddressesCache } from '@/lib/home-cache';
 import { queryClient } from '@/lib/query-client';
 import { trackCheckoutStarted, trackCouponApplied, trackCouponRemoved, trackPaymentInitiated, trackPaymentCancelled, trackPaymentFailed } from '@/lib/analytics';
@@ -26,10 +27,12 @@ import { useTheme } from '@/hooks/use-theme';
 import { slotLabel, useSlots } from '@/lib/slots';
 import { useDietaryOptions } from '@/lib/dietary-options';
 import { ProfileCompletionSheet } from '@/components/screens/checkout/profile-completion-sheet';
+import { refusalText } from '@/components/screens/subscriptions/subscription-info';
+import { countOf, daysText, formatDay } from '@/lib/subscription-view';
 import type { DeliveryAddress, Plan } from '@/types/api';
 import { getAppConfig } from '@/lib/app-config';
 import { isPhoneEmail, phoneFromEmail } from '@/lib/phone-email';
-import { DISPLAY_DAYS } from '@/components/screens/deliveries/week-nav';
+import { DEFAULT_DELIVERY_DAYS } from '@/lib/delivery-rules';
 import { BASE_URL } from '@/lib/base-url';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -53,8 +56,12 @@ interface CouponState {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function shortDays(days: string[]): string {
-  return days.map((d) => d.substring(0, 3)).join(', ');
+// Dietary options that set the plan's style; "Regular" is having neither.
+const STYLE_KEYS = ['high_protein', 'disease_friendly'] as const;
+type PlanStyle = 'regular' | (typeof STYLE_KEYS)[number];
+
+function isStyleKey(key: string): key is (typeof STYLE_KEYS)[number] {
+  return (STYLE_KEYS as readonly string[]).includes(key);
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -69,21 +76,15 @@ export default function CheckoutScreen() {
 
   const {
     planId,
-    mealCount: mealCountParam,
-    totalPricePaise: totalParam,
     days: daysParam,
     slot: slotParam,
   } = useLocalSearchParams<{
     planId: string;
-    mealCount: string;
-    totalPricePaise: string;
     days: string;
     slot: string;
   }>();
 
-  const mealCount = Number(mealCountParam ?? '0');
-  const baseTotalPaise = Number(totalParam ?? '0');
-  const preferredDays = daysParam ? daysParam.split(',') : [...DISPLAY_DAYS];
+  const preferredDays = daysParam ? daysParam.split(',') : [...DEFAULT_DELIVERY_DAYS];
   const deliverySlot = slotParam ?? 'noon';
 
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -100,12 +101,34 @@ export default function CheckoutScreen() {
   const [sheetVisible, setSheetVisible] = useState(false);
 
   const dietaryOptions = useDietaryOptions();
+  const styleChoices: { key: PlanStyle; label: string }[] = [
+    { key: 'regular', label: 'Regular' },
+    ...dietaryOptions.flatMap((o) => (isStyleKey(o.key) ? [{ key: o.key, label: o.label }] : [])),
+  ];
+  const cookingOptions = dietaryOptions.filter((o) => !isStyleKey(o.key));
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [selectedDietaryKeys, setSelectedDietaryKeys] = useState<string[]>([]);
+  const [chosenStyle, setChosenStyle] = useState<PlanStyle>('regular');
   const toggleDietaryKey = (key: string) =>
     setSelectedDietaryKeys((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
+  // A high-protein plan has no other style.
+  const planStyle: PlanStyle = plan?.is_high_protein ? 'high_protein' : chosenStyle;
+
+  const { data: preview, isLoading: previewLoading } = useQuery({
+    queryKey: ['subscription-preview', planId, preferredDays.join(','), deliverySlot],
+    queryFn: () => subscriptionsApi.preview({ planId, preferredDays, timeSlotId: deliverySlot }),
+    enabled: !!planId,
+    staleTime: 60 * 1000,
+    retry: false,
+  });
+  const refusal = preview && !preview.can_buy ? refusalText(preview) : null;
+  // A customer who already holds a subscription keeps their days, time and
+  // address for every new one; the server ignores the ones sent.
+  const shared = preview?.your_schedule ?? null;
+  const shownDays = shared?.preferred_days.length ? shared.preferred_days : preferredDays;
+  const shownSlot = shared?.delivery_slot ?? deliverySlot;
 
   const isPhoneUser = isPhoneEmail(user?.email);
   const derivedPhone = isPhoneUser
@@ -116,9 +139,12 @@ export default function CheckoutScreen() {
   const needsName  = !profile?.full_name;
   const profileComplete = !needsPhone && !needsName;
 
+  const trackedCheckout = useRef(false);
   useEffect(() => {
-    if (planId) trackCheckoutStarted(planId, mealCount, Math.round(baseTotalPaise / 100));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!plan || trackedCheckout.current) return;
+    trackedCheckout.current = true;
+    trackCheckoutStarted(plan.id, plan.bowls_count, Math.round(plan.price_paise / 100));
+  }, [plan]);
 
   useEffect(() => {
     async function load() {
@@ -161,16 +187,12 @@ export default function CheckoutScreen() {
     }, [userId]),
   );
 
+  const baseTotalPaise = plan?.price_paise ?? 0;
   const discount = appliedCoupon?.discountPaise ?? 0;
   const finalPaise = Math.max(0, baseTotalPaise - discount);
   const baseRs = Math.round(baseTotalPaise / 100);
   const discountRs = Math.round(discount / 100);
   const finalRs = Math.round(finalPaise / 100);
-
-  const extraMeals = plan ? Math.max(0, mealCount - plan.total_meals) : 0;
-  const extraPaise = plan
-    ? extraMeals * (plan.price_per_meal_paise ?? (plan.total_meals > 0 ? Math.round(plan.price_paise / plan.total_meals) : 0))
-    : 0;
 
   // ── Coupon ────────────────────────────────────────────────────────────────
 
@@ -240,7 +262,13 @@ export default function CheckoutScreen() {
     setPaying(true);
     let orderId = '';
     let finalAmountPaise = 0;
+    const dietaryPreferences = [
+      ...(planStyle === 'regular' ? [] : [planStyle]),
+      ...selectedDietaryKeys,
+    ];
     try {
+      // Sent for a renewal too: if the running subscription closes before the
+      // payment lands, this one starts as the head and books on these.
       const orderRes = await ordersApi.create({
         planId: plan.id,
         timeSlotId: deliverySlot,
@@ -248,12 +276,20 @@ export default function CheckoutScreen() {
         mobile: phone,
         area: address.area,
         address: address.full_address,
-        preferredDays: preferredDays.length ? preferredDays : [...DISPLAY_DAYS],
-        extraMeals: extraMeals > 0 ? extraMeals : undefined,
+        preferredDays: preferredDays.length ? preferredDays : [...DEFAULT_DELIVERY_DAYS],
         specialInstructions: specialInstructions.trim() || undefined,
-        dietaryPreferences: selectedDietaryKeys.length ? selectedDietaryKeys : undefined,
+        dietaryPreferences: dietaryPreferences.length ? dietaryPreferences : undefined,
       });
       orderId = orderRes.orderId;
+      const successParams = (amountRs: number, dates: { starts_on: string; ends_on: string }) => ({
+        orderId: orderRes.orderId,
+        planName: plan.name,
+        amountRs: String(amountRs),
+        startsOn: dates.starts_on,
+        endsOn: dates.ends_on,
+        renewal: orderRes.renewal ? 'true' : 'false',
+        unit: plan.unit?.singular ?? 'bowl',
+      });
 
       const payRes = await paymentsApi.createRazorpayOrder(
         orderRes.orderId,
@@ -265,10 +301,7 @@ export default function CheckoutScreen() {
       trackPaymentInitiated(plan.id, Math.round(finalAmountPaise / 100));
 
       if (finalAmountPaise === 0) {
-        router.push({
-          pathname: '/payment-success',
-          params: { orderId: orderRes.orderId, planName: plan.name, amountRs: '0' },
-        });
+        router.push({ pathname: '/payment-success', params: successParams(0, orderRes) });
         return;
       }
 
@@ -284,29 +317,36 @@ export default function CheckoutScreen() {
         modal: { handleback: true },
       });
 
+      let verified: Awaited<ReturnType<typeof paymentsApi.verify>>;
       try {
-        await paymentsApi.verify({
+        verified = await paymentsApi.verify({
           razorpayOrderId,
           razorpayPaymentId: paymentData.razorpay_payment_id,
           razorpaySignature: paymentData.razorpay_signature ?? '',
           orderId: orderRes.orderId,
         });
       } catch {
-        // Razorpay has already taken the money; its webhook still activates the plan.
-        void queryClient.invalidateQueries({ queryKey: ['wallet'] });
+        // Razorpay has already taken the money; its webhook still activates the subscription.
+        void queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
         void queryClient.invalidateQueries({ queryKey: ['home'] });
         showAlert(
           'Payment received, confirming…',
-          'Your plan will show in your wallet in a few minutes. No need to pay again.',
-          [{ text: 'Go to wallet', onPress: () => router.replace('/wallet') }],
+          'Your subscription will show in a few minutes. No need to pay again.',
+          [{ text: 'View my subscription', onPress: () => router.replace('/subscriptions') }],
         );
         return;
       }
       router.push({
         pathname: '/payment-success',
-        params: { orderId: orderRes.orderId, planName: plan.name, amountRs: String(Math.round(finalAmountPaise / 100)) },
+        params: successParams(Math.round(finalAmountPaise / 100), verified.subscription ?? orderRes),
       });
     } catch (err) {
+      if (err instanceof ApiError && (err.code === 'trial_used' || err.code === 'renewal_exists')) {
+        void queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+        void queryClient.invalidateQueries({ queryKey: ['subscription-preview'] });
+        showAlert("Can't buy this plan", err.message, [{ text: 'See plans', onPress: () => router.back() }]);
+        return;
+      }
       // Razorpay SDK rejects with { code, description } on cancel (code 2) or failure.
       // Don't show an error alert when the user deliberately closes the payment sheet.
       const razorpayErr = err as { code?: number; description?: string };
@@ -386,8 +426,7 @@ export default function CheckoutScreen() {
                 <Text
                   style={[styles.planBannerMeta, { fontFamily: fonts.body }]}
                 >
-                  {mealCount} meals
-                  {extraMeals > 0 && ` · +${extraMeals} extra`}
+                  {plan ? countOf(plan.bowls_count, plan.unit) : ' '}
                 </Text>
               </View>
             </View>
@@ -458,12 +497,12 @@ export default function CheckoutScreen() {
               {
                 icon: "time-outline",
                 label: "Slot",
-                value: slotLabel(deliverySlot, slots),
+                value: slotLabel(shownSlot, slots),
               },
               {
                 icon: "calendar-outline",
                 label: "Days",
-                value: shortDays(preferredDays),
+                value: daysText(shownDays),
               },
             ].map((row) => (
               <View key={row.label} style={styles.infoRow}>
@@ -500,7 +539,72 @@ export default function CheckoutScreen() {
               </View>
             ))}
           </View>
+          {shared ? (
+            <Text style={[styles.cardNote, { color: colors.textMuted, fontFamily: fonts.body }]}>
+              Everything comes on the same days, time and address. Change them in Deliveries.
+            </Text>
+          ) : null}
         </View>
+
+        {previewLoading || preview ? (
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: refusal ? colors.errorBg : colors.surface,
+                borderWidth: 1,
+                borderColor: refusal ? colors.error + "30" : colors.border,
+                marginHorizontal: Spacing[5],
+              },
+            ]}
+          >
+            <Text style={[styles.cardLabel, { color: colors.textMuted, fontFamily: fonts.bodySemibold }]}>
+              YOUR SUBSCRIPTION
+            </Text>
+            {previewLoading ? (
+              <View style={styles.infoGrid}>
+                <Skeleton width={180} height={13} radius={4} />
+                <Skeleton width={150} height={13} radius={4} />
+              </View>
+            ) : refusal ? (
+              <View style={styles.refusalRow}>
+                <Ionicons name="alert-circle-outline" size={18} color={colors.error} />
+                <Text style={[styles.refusalText, { color: colors.error, fontFamily: fonts.body }]}>
+                  {refusal}
+                </Text>
+              </View>
+            ) : preview ? (
+              <>
+                <View style={styles.infoGrid}>
+                  {[
+                    { icon: "play-circle-outline", label: "Starts", value: formatDay(preview.starts_on) },
+                    { icon: "calendar-outline", label: "Valid till", value: formatDay(preview.ends_on) },
+                    { icon: "hourglass-outline", label: "If you skip, it may run until", value: formatDay(preview.last_allowed_on) },
+                  ].map((row) => (
+                    <View key={row.label} style={styles.infoRow}>
+                      <View style={[styles.infoIcon, { backgroundColor: colors.surface2 }]}>
+                        <Ionicons name={row.icon as never} size={14} color={colors.primary} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.infoLabel, { color: colors.textMuted, fontFamily: fonts.body }]}>
+                          {row.label}
+                        </Text>
+                        <Text style={[styles.infoValue, { color: colors.text, fontFamily: fonts.bodySemibold }]}>
+                          {row.value}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+                {preview.after ? (
+                  <Text style={[styles.cardNote, { color: colors.textMuted, fontFamily: fonts.body }]}>
+                    Starts after your {preview.after.plan_name} ends on {formatDay(preview.after.ends_on)}.
+                  </Text>
+                ) : null}
+              </>
+            ) : null}
+          </View>
+        ) : null}
 
         {/* ── Phone required card (shown first) ────────────────────────────── */}
         {needsPhone && (
@@ -580,31 +684,33 @@ export default function CheckoutScreen() {
                 </Text>
                 <Text
                   style={[styles.addrMain, { color: colors.text, fontFamily: fonts.bodySemibold }]}
-                  numberOfLines={2}
+                  numberOfLines={3}
                 >
-                  {address.full_address}
+                  {shared?.address ?? address.full_address}
                 </Text>
-                {(address.label || address.city || address.pincode) ? (
+                {!shared && (address.label || address.city || address.pincode) ? (
                   <Text style={[styles.addrSub, { color: colors.textMuted, fontFamily: fonts.body }]}>
                     {[address.label, address.city, address.pincode].filter(Boolean).join(' · ')}
                   </Text>
                 ) : null}
-                {address.landmark ? (
+                {!shared && address.landmark ? (
                   <Text style={[styles.addrSub, { color: colors.textMuted, fontFamily: fonts.body }]}>
                     Near {address.landmark}
                   </Text>
                 ) : null}
               </View>
-              <TouchableOpacity
-                activeOpacity={0.7}
-                style={styles.addrChangeBtn}
-                onPress={() => router.push({ pathname: '/addresses', params: { selectMode: 'true' } })}
-              >
-                <Ionicons name="pencil-outline" size={12} color={colors.primary} />
-                <Text style={[styles.addrChangeBtnText, { color: colors.primary, fontFamily: fonts.bodyMedium }]}>
-                  Change
-                </Text>
-              </TouchableOpacity>
+              {shared ? null : (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={styles.addrChangeBtn}
+                  onPress={() => router.push({ pathname: '/addresses', params: { selectMode: 'true' } })}
+                >
+                  <Ionicons name="pencil-outline" size={12} color={colors.primary} />
+                  <Text style={[styles.addrChangeBtnText, { color: colors.primary, fontFamily: fonts.bodyMedium }]}>
+                    Change
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         ) : (
@@ -848,6 +954,68 @@ export default function CheckoutScreen() {
           )}
         </View>
 
+        {styleChoices.length > 1 && (
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                marginHorizontal: Spacing[5],
+              },
+            ]}
+          >
+            <Text style={[styles.cardLabel, { color: colors.textMuted, fontFamily: fonts.bodySemibold }]}>
+              PLAN STYLE
+            </Text>
+            <View style={styles.dietaryRow}>
+              {styleChoices.map((opt) => {
+                const active = planStyle === opt.key;
+                const locked = !!plan?.is_high_protein && !active;
+                return (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[
+                      styles.dietaryChip,
+                      active
+                        ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                        : { backgroundColor: colors.surface2, borderColor: 'transparent' },
+                      locked && { opacity: 0.45 },
+                    ]}
+                    onPress={() => setChosenStyle(opt.key)}
+                    disabled={!!plan?.is_high_protein}
+                    hitSlop={{ top: 4, bottom: 4, left: 2, right: 2 }}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons
+                      name={active ? 'radio-button-on' : 'radio-button-off'}
+                      size={14}
+                      color={active ? '#fff' : colors.textMuted}
+                    />
+                    <Text
+                      style={[
+                        styles.dietaryChipText,
+                        {
+                          color: active ? '#fff' : colors.textMuted,
+                          fontFamily: active ? fonts.bodySemibold : fonts.body,
+                        },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text style={[styles.cardNote, { color: colors.textMuted, fontFamily: fonts.body }]}>
+              {plan?.is_high_protein
+                ? 'Every bowl in this plan is high-protein.'
+                : 'Our dietitian plans your bowls around this.'}
+            </Text>
+          </View>
+        )}
+
         {/* ── Cooking notes ─────────────────────────────────────────────────── */}
         <View
           style={[
@@ -869,9 +1037,9 @@ export default function CheckoutScreen() {
             COOKING NOTES (OPTIONAL)
           </Text>
 
-          {dietaryOptions.length > 0 && (
+          {cookingOptions.length > 0 && (
             <View style={styles.dietaryRow}>
-              {dietaryOptions.map((opt) => {
+              {cookingOptions.map((opt) => {
                 const active = selectedDietaryKeys.includes(opt.key);
                 return (
                   <TouchableOpacity
@@ -964,22 +1132,14 @@ export default function CheckoutScreen() {
             ) : (
               <>
                 <PriceRow
-                  label={`${plan?.name ?? "Plan"} (${plan?.total_meals ?? 0} meals)`}
+                  label={`${plan?.name ?? "Plan"} (${countOf(plan?.bowls_count ?? 0, plan?.unit)})`}
                   value={`₹${Math.round((plan?.price_paise ?? 0) / 100)}`}
                   colors={colors}
                   fonts={fonts}
                 />
-                {extraMeals > 0 && (
-                  <PriceRow
-                    label={`Extra meals (×${extraMeals})`}
-                    value={`₹${Math.round(extraPaise / 100)}`}
-                    colors={colors}
-                    fonts={fonts}
-                  />
-                )}
                 <PriceRow
                   label="Delivery"
-                  value="Free within 5 km"
+                  value="Free within 10 km"
                   valueColor={colors.primary}
                   colors={colors}
                   fonts={fonts}
@@ -1096,11 +1256,11 @@ export default function CheckoutScreen() {
                 styles.payBtn,
                 {
                   backgroundColor:
-                    loading || paying ? colors.textMuted : colors.primary,
+                    loading || paying || refusal ? colors.textMuted : colors.primary,
                 },
               ]}
               onPress={handlePay}
-              disabled={loading || paying}
+              disabled={loading || paying || !!refusal}
               activeOpacity={0.85}
             >
               {paying && (
@@ -1211,6 +1371,9 @@ const styles = StyleSheet.create({
     gap: Spacing[3],
   },
   cardLabel: { fontSize: 11, letterSpacing: 0.6 },
+  cardNote: { fontSize: FontSize.xs, lineHeight: FontSize.xs * 1.5 },
+  refusalRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing[2] },
+  refusalText: { flex: 1, fontSize: FontSize.sm, lineHeight: FontSize.sm * 1.5 },
 
   // Cooking notes
   dietaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[2] },

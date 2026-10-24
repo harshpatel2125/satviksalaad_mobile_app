@@ -38,5 +38,5 @@ OTA publishing (`npm run ota:*`) reads `.env.hotupdater`: `HOT_UPDATER_CLOUDFLAR
 ## Identifiers to confirm
 
 - iOS bundle id and Android package: `com.infynixlabs.satviksalaad`
-- Website / universal-link domain: `satviksalaad.in`
+- Website / universal-link domain: `satviksalaad.com` (and `www.satviksalaad.com`)
 - URL scheme: `satviksalaad://`

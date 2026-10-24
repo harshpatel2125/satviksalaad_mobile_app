@@ -1,4 +1,6 @@
-export const DEEP_LINK_BASE = 'https://www.satviksalaad.in/app';
+export const DEEP_LINK_BASE = 'https://satviksalaad.com/app';
+
+const UNIVERSAL_LINK_PREFIX = /^https:\/\/(?:www\.)?satviksalaad\.com\/app(?=[/?#]|$)/i;
 
 /**
  * Converts an incoming deep link URL to an Expo Router path.
@@ -7,8 +9,9 @@ export const DEEP_LINK_BASE = 'https://www.satviksalaad.in/app';
 export function parseIncomingUrl(url: string): string | null {
   if (url.includes('/auth/callback')) return null;
 
-  if (url.startsWith(DEEP_LINK_BASE)) {
-    const path = url.slice(DEEP_LINK_BASE.length);
+  const prefix = url.match(UNIVERSAL_LINK_PREFIX);
+  if (prefix) {
+    const path = url.slice(prefix[0].length);
     return path.startsWith('/') ? path : `/${path}`;
   }
 

@@ -77,10 +77,10 @@ export const trackOnboardingCompleted = (): void => {
 // ─── Critical screen opens ────────────────────────────────────────────────────
 
 type CriticalScreen =
-  | 'buy_passes'
+  | 'plans'
   | 'support'
   | 'delivery_history'
-  | 'wallet';
+  | 'subscriptions';
 
 export const trackScreenOpened = (screen: CriticalScreen): void => {
   if (am && fa) void am.logEvent(fa, `screen_opened_${screen}`);
@@ -92,8 +92,8 @@ export const trackPlanSelected = (planId: string): void => {
   if (am && fa) void am.logEvent(fa, 'plan_selected', { plan_id: planId });
 };
 
-export const trackCheckoutStarted = (planId: string, mealCount: number, value: number): void => {
-  if (am && fa) void am.logEvent(fa, 'checkout_started', { plan_id: planId, meal_count: mealCount, value });
+export const trackCheckoutStarted = (planId: string, bowlCount: number, value: number): void => {
+  if (am && fa) void am.logEvent(fa, 'checkout_started', { plan_id: planId, bowl_count: bowlCount, value });
 };
 
 export const trackCouponApplied = (code: string, discount: number): void => {

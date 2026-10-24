@@ -9,9 +9,18 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { slotTime, useSlots } from '@/lib/slots';
-import type { HomeCriticalLog } from '@/types/api';
-import type { MealInfo } from "@/components/screens/deliveries/delivery-row";
-import { formatDeliveryDate } from './today-delivery';
+import { deliveryDetailParams } from '@/components/screens/subscriptions/subscription-info';
+import { toDayItem } from '@/lib/subscription-view';
+import type { Categories, HomeCriticalLog } from '@/types/api';
+
+function formatDeliveryDate(iso: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  const today     = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  if (iso === today)     return 'Today';
+  if (iso === yesterday) return 'Yesterday';
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+}
 
 const STATUS_LABELS: Record<string, string> = {
   scheduled: 'Scheduled',
@@ -24,7 +33,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 interface RecentActivityProps {
   logs: HomeCriticalLog[];
-  bowl: MealInfo;
+  categories: Categories;
   colors: ReturnType<typeof useTheme>["colors"];
   fonts: ReturnType<typeof useTheme>["fonts"];
   onSeeAll: () => void;
@@ -46,7 +55,7 @@ function SkeletonRow({ colors }: { colors: ReturnType<typeof useTheme>['colors']
 
 export function RecentActivity({
   logs,
-  bowl,
+  categories,
   colors,
   fonts,
   onSeeAll,
@@ -101,26 +110,13 @@ export function RecentActivity({
                 ? "remove-circle-outline"
                 : "time-outline";
           const statusLabel = STATUS_LABELS[d.status] ?? d.status.replace(/_/g, ' ');
-          const mealName = bowl.name;
+          const item = toDayItem(d, categories);
 
           return (
             <TouchableOpacity
               key={d.id}
               activeOpacity={0.7}
-              onPress={() =>
-                router.push({
-                  pathname: '/delivery-detail',
-                  params: {
-                    id: d.id,
-                    date: d.delivery_date,
-                    slot: d.delivery_slot,
-                    status: d.status,
-                    quantity: String(d.quantity),
-                    mealName: mealName,
-                    mealImageUrl: bowl.image_url ?? '',
-                  },
-                })
-              }
+              onPress={() => router.push({ pathname: '/delivery-detail', params: deliveryDetailParams(item) })}
               style={[
                 recentStyles.row,
                 { borderTopColor: colors.borderLight },
@@ -140,7 +136,7 @@ export function RecentActivity({
                     },
                   ]}
                 >
-                  {mealName}
+                  {item.name}
                 </Text>
                 <Text
                   style={[
