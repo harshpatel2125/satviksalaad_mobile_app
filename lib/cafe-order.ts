@@ -264,8 +264,8 @@ export function buildOrderMessage(lines: CartLine[], order: OrderDetails): strin
     ...(order.notes.trim() ? [`Notes: ${oneLine(order.notes)}`] : []),
     '',
     delivery
-      ? 'Payment on delivery. Delivery charges, if any, to be confirmed on WhatsApp.'
-      : 'Payment at pickup.',
+      ? 'Payment in advance: please share the payment details. Delivery charges, if any, to be confirmed on WhatsApp.'
+      : 'Payment in advance: please share the payment details.',
   ];
   return message.join('\n');
 }

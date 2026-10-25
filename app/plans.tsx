@@ -31,6 +31,7 @@ import { PlansSkeleton } from '@/components/skeletons/plans-skeleton';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { homeApi, plansApi, slotsApi } from '@/lib/api';
+import { gstNote } from '@/lib/gst';
 import { trackPlanSelected, trackScreenOpened } from '@/lib/analytics';
 import { readPlansCache, readSlotsCache, writePlansCache, writeSlotsCache } from '@/lib/home-cache';
 import { asyncPersister, CACHE_TTL } from '@/lib/query-client';
@@ -303,6 +304,7 @@ export default function PlansScreen() {
                     onSelect: handleSelectPlan,
                     unavailable: unavailableReason(plan),
                     enterDelay: delay + 60 + i * 80,
+                    gstNote: gstNote(plansData?.meta?.gstRateBps ?? 0),
                   };
                   if (plan === lead) return <HeroPlanCard key={plan.id} {...props} />;
                   if (group.key === 'fruit' && i === 0) return <FruitPlanCard key={plan.id} {...props} />;

@@ -141,9 +141,11 @@ interface PlanCardProps {
   /** Why the plan cannot be chosen now; the card is then disabled. */
   unavailable?: string | null;
   enterDelay: number;
+  /** "+ 5% GST" when GST is added at checkout. */
+  gstNote?: string | null;
 }
 
-export function HeroPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay }: PlanCardProps) {
+export function HeroPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay, gstNote }: PlanCardProps) {
   const { fonts } = useTheme();
   const planRs    = Math.round(plan.price_paise / 100);
   const perBowlRs = Math.round(pricePerBowl(plan) / 100);
@@ -206,7 +208,7 @@ export function HeroPlanCard({ plan, isSelected, onSelect, unavailable, enterDel
           </Text>
           <View style={heroStyles.priceRight}>
             <Text style={[heroStyles.priceLabel, { fontFamily: fonts.bodyMedium }]}>
-              total
+              {gstNote ?? 'total'}
             </Text>
             <Text style={[heroStyles.perBowl, { fontFamily: fonts.body }]}>
               ₹{perBowlRs}/{(plan.unit ?? DEFAULT_UNITS).singular}
@@ -318,7 +320,7 @@ const heroStyles = StyleSheet.create({
 
 // ─── Standard Plan Card ──────────────────────────────────────────────────────
 
-export function StandardPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay }: PlanCardProps) {
+export function StandardPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay, gstNote }: PlanCardProps) {
   const { colors, fonts } = useTheme();
   const planRs    = Math.round(plan.price_paise / 100);
   const units = ['meals?', 'salads?', 'bowls?', plan.unit?.singular, plan.unit?.plural].filter(Boolean).join('|');
@@ -355,7 +357,7 @@ export function StandardPlanCard({ plan, isSelected, onSelect, unavailable, ente
             <Text style={[stdStyles.price, { color: isSelected ? colors.primaryDark : colors.text, fontFamily: fonts.display }]}>
               ₹{planRs}
             </Text>
-            <Text style={[stdStyles.priceSub, { color: colors.textMuted, fontFamily: fonts.body }]}>total</Text>
+            <Text style={[stdStyles.priceSub, { color: colors.textMuted, fontFamily: fonts.body }]}>{gstNote ?? 'total'}</Text>
           </View>
         </View>
 
@@ -389,7 +391,7 @@ const stdStyles = StyleSheet.create({
 
 // ─── Fruit Plan Card ──────────────────────────────────────────────────────────
 
-export function FruitPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay }: PlanCardProps) {
+export function FruitPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay, gstNote }: PlanCardProps) {
   const { fonts, isDark } = useTheme();
   const planRs    = Math.round(plan.price_paise / 100);
 
@@ -443,7 +445,7 @@ export function FruitPlanCard({ plan, isSelected, onSelect, unavailable, enterDe
             <Text style={[fruitStyles.price, { color: amberDark, fontFamily: fonts.display }]}>
               ₹{planRs}
             </Text>
-            <Text style={[fruitStyles.priceSub, { color: amberMeta, fontFamily: fonts.body }]}>total</Text>
+            <Text style={[fruitStyles.priceSub, { color: amberMeta, fontFamily: fonts.body }]}>{gstNote ?? 'total'}</Text>
           </View>
         </View>
       </View>

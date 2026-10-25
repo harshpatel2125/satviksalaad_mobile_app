@@ -266,7 +266,8 @@ export interface Plan {
 export interface PlansResponse {
   success: boolean;
   data: Plan[];
-  meta: { count: number };
+  /** `gstRateBps` is added on top of plan prices at checkout; older servers leave it out. */
+  meta: { count: number; gstRateBps?: number };
 }
 
 // ─── Slots ────────────────────────────────────────────────────────────────────

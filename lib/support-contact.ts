@@ -13,7 +13,7 @@ const FALLBACK_EMAIL = 'care@satviksalaad.com';
 export const CAFE = {
   address: 'GF Shop No. 2, Campus Corner 1, Opp. Prahladnagar Garden, Ahmedabad 380015',
   mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Satvik+Salaad+Campus+Corner+1+Prahladnagar+Ahmedabad',
-  hoursLabel: 'Every day · 8:00 AM – 8:00 PM',
+  hoursLabel: 'Every day · 8:00 AM – 11:00 PM',
   /** 0 = Sunday, as Date#getDay. */
   openDays: [0, 1, 2, 3, 4, 5, 6],
   /** Minutes after midnight, IST. */

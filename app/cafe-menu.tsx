@@ -237,8 +237,8 @@ export default function CafeMenuScreen() {
           >
             <View style={s.intro} onLayout={(e) => setFiltersTop(e.nativeEvent.layout.height)}>
               <Text style={[s.introText, { color: colors.textSecondary, fontFamily: fonts.body }]}>
-                Add what you&apos;d like and send the order on WhatsApp for delivery or pickup. No online payment: you
-                pay when it reaches you or when you collect it.
+                Add what you&apos;d like and send the order on WhatsApp for delivery or pickup. All orders are paid in
+                advance: we confirm your order on WhatsApp and share the payment details.
               </Text>
               <View style={s.legend}>
                 {MARKS.map((mark) => (
@@ -905,11 +905,11 @@ function CheckoutSheet({
 
             <View style={s.notes}>
               <Text style={[s.hint, { color: colors.textMuted, fontFamily: fonts.body }]}>
-                We confirm your order and delivery range on WhatsApp. Delivery is free within 3 km of our Prahladnagar
-                café; further away, we&apos;ll share the Porter charge.
+                We confirm your order, and the delivery range for deliveries, on WhatsApp. Delivery is free within 3 km of
+                our Prahladnagar café; further away, we&apos;ll share the Porter charge.
               </Text>
               <Text style={[s.hint, { color: colors.text, fontFamily: fonts.bodyMedium }]}>
-                No online payment for café orders: you pay on delivery or at pickup.
+                All café orders are paid in advance, once we confirm them on WhatsApp.
               </Text>
             </View>
 

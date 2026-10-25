@@ -20,6 +20,7 @@ import { Brand, FontSize, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useAlert } from '@/context/alert';
 import { useAuth } from '@/context/auth';
 import { ApiError, addressesApi, authHeader, ordersApi, paymentsApi, plansApi, subscriptionsApi } from '@/lib/api';
+import { addGst, formatGstRate, rupeesFromPaise } from '@/lib/gst';
 import { readAddressesCache } from '@/lib/home-cache';
 import { queryClient } from '@/lib/query-client';
 import { trackCheckoutStarted, trackCouponApplied, trackCouponRemoved, trackPaymentInitiated, trackPaymentCancelled, trackPaymentFailed } from '@/lib/analytics';
@@ -88,6 +89,8 @@ export default function CheckoutScreen() {
   const deliverySlot = slotParam ?? 'noon';
 
   const [plan, setPlan] = useState<Plan | null>(null);
+
+  const [gstRateBps, setGstRateBps] = useState(0);
   const [address, setAddress] = useState<DeliveryAddress | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -160,6 +163,7 @@ export default function CheckoutScreen() {
 
         const found = plansRes.data.find((p) => p.id === planId);
         setPlan(found ?? null);
+        setGstRateBps(plansRes.meta?.gstRateBps ?? 0);
 
         if (addrsRes?.data) {
           const def = addrsRes.data.find((a) => a.is_default) ?? addrsRes.data[0] ?? null;
@@ -193,10 +197,12 @@ export default function CheckoutScreen() {
 
   const baseTotalPaise = plan?.price_paise ?? 0;
   const discount = appliedCoupon?.discountPaise ?? 0;
-  const finalPaise = Math.max(0, baseTotalPaise - discount);
+  const gst = addGst(Math.max(0, baseTotalPaise - discount), gstRateBps);
+  const finalPaise = gst.totalPaise;
   const baseRs = Math.round(baseTotalPaise / 100);
+  const undiscountedRs = rupeesFromPaise(addGst(baseTotalPaise, gstRateBps).totalPaise).slice(1);
   const discountRs = Math.round(discount / 100);
-  const finalRs = Math.round(finalPaise / 100);
+  const finalRs = rupeesFromPaise(finalPaise).slice(1);
 
   // ── Coupon ────────────────────────────────────────────────────────────────
 
@@ -1157,6 +1163,14 @@ export default function CheckoutScreen() {
                     fonts={fonts}
                   />
                 )}
+                {gst.taxPaise > 0 && (
+                  <PriceRow
+                    label={`GST (${formatGstRate(gstRateBps)})`}
+                    value={rupeesFromPaise(gst.taxPaise)}
+                    colors={colors}
+                    fonts={fonts}
+                  />
+                )}
               </>
             )}
           </View>
@@ -1182,7 +1196,7 @@ export default function CheckoutScreen() {
                         { color: colors.textMuted, fontFamily: fonts.body },
                       ]}
                     >
-                      ₹{baseRs}
+                      ₹{undiscountedRs}
                     </Text>
                   )}
                   <Text
