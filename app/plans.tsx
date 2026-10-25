@@ -14,8 +14,10 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useQuery } from '@tanstack/react-query';
 
 import { BottomActionBar } from "@/components/ui/bottom-action-bar";
+import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { CheckoutFooter } from '@/components/screens/plans/checkout-footer';
+import { PlansInfo } from '@/components/screens/plans/plan-info';
 import {
   DeliverySchedule,
   SectionLabel,
@@ -32,6 +34,7 @@ import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { homeApi, plansApi, slotsApi } from '@/lib/api';
 import { gstNote } from '@/lib/gst';
+import { planSavingsText } from '@/lib/plan-savings';
 import { trackPlanSelected, trackScreenOpened } from '@/lib/analytics';
 import { readPlansCache, readSlotsCache, writePlansCache, writeSlotsCache } from '@/lib/home-cache';
 import { asyncPersister, CACHE_TTL } from '@/lib/query-client';
@@ -49,12 +52,6 @@ function inShowOrder(plans: Plan[]): Plan[] {
 }
 
 const TABLET_BREAKPOINT = 768;
-
-const TRUST_ITEMS = [
-  { icon: "shield-checkmark-outline", text: "Secure payment" },
-  { icon: "calendar-outline", text: "Skipped bowls move to the end" },
-  { icon: "refresh-outline", text: "Nothing renews by itself" },
-] as const;
 
 export default function PlansScreen() {
   const { colors, fonts } = useTheme();
@@ -77,7 +74,7 @@ export default function PlansScreen() {
   const [cachedPlans] = useState(() => readPlansCache());
   const [cachedSlots] = useState(() => readSlotsCache());
 
-  const { data: plansData, isLoading: plansLoading } = useQuery({
+  const { data: plansData, isLoading: plansLoading, isError: plansFailed, refetch: refetchPlans } = useQuery({
     queryKey: ['plans'],
     queryFn: plansApi.list,
     staleTime: CACHE_TTL.plans,
@@ -227,6 +224,23 @@ export default function PlansScreen() {
     );
   }
 
+  if (allPlans.length === 0) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.background }]}>
+        <ScreenHeader title="Choose your plan" onBack={() => router.back()} />
+        <EmptyState
+          icon="leaf-outline"
+          title={plansFailed ? "We couldn't load the plans" : 'No plans right now'}
+          body={plansFailed ? 'Check your connection and try again.' : 'Please check back soon.'}
+          actionLabel={plansFailed ? 'Try again' : undefined}
+          onAction={plansFailed ? () => void refetchPlans() : undefined}
+        />
+      </View>
+    );
+  }
+
+  const gstRateBps = plansData?.meta?.gstRateBps ?? 0;
+
   // What the customer already holds, told for the category of the plan in view.
   const focusCategory = allPlans.find((p) => p.id === selectedId)?.category ?? groups[0]?.key ?? null;
   const waiting = open.find((sub) => sub.status === 'upcoming' && sub.category === focusCategory) ?? null;
@@ -304,7 +318,8 @@ export default function PlansScreen() {
                     onSelect: handleSelectPlan,
                     unavailable: unavailableReason(plan),
                     enterDelay: delay + 60 + i * 80,
-                    gstNote: gstNote(plansData?.meta?.gstRateBps ?? 0),
+                    gstNote: gstNote(gstRateBps),
+                    savings: planSavingsText(plan, allPlans),
                   };
                   if (plan === lead) return <HeroPlanCard key={plan.id} {...props} />;
                   if (group.key === 'fruit' && i === 0) return <FruitPlanCard key={plan.id} {...props} />;
@@ -330,19 +345,12 @@ export default function PlansScreen() {
             />
           </View>
 
-          {/* ── Trust row ─────────────────────────────────────────────────── */}
-          <Animated.View
-            entering={FadeInDown.delay(540).springify().damping(16)}
-            style={[styles.trustRow, tabletCenter]}
-          >
-            {TRUST_ITEMS.map((t) => (
-              <View key={t.text} style={styles.trustItem}>
-                <Ionicons name={t.icon} size={13} color={colors.primary} />
-                <Text style={[styles.trustText, { color: colors.textMuted, fontFamily: fonts.body }]}>
-                  {t.text}
-                </Text>
-              </View>
-            ))}
+          <Animated.View entering={FadeInDown.delay(540).springify().damping(16)} style={tabletCenter}>
+            <PlansInfo
+              plans={allPlans}
+              gstRateBps={gstRateBps}
+              onDietConsultation={() => router.push('/diet-consultation')}
+            />
           </Animated.View>
         </ScrollView>
       </Animated.View>
@@ -354,6 +362,7 @@ export default function PlansScreen() {
             count={countOf(selectedPlan.bowls_count, selectedPlan.unit)}
             selectedDaysCount={days.length}
             totalRs={Math.round(selectedPlan.price_paise / 100)}
+            gstNote={gstNote(gstRateBps)}
             canCheckout={canCheckout}
             onCheckout={handleCheckoutPress}
             style={
@@ -382,12 +391,4 @@ const styles = StyleSheet.create({
   noticeText: { flex: 1, fontSize: FontSize.sm, lineHeight: FontSize.sm * 1.5 },
 
   section: { gap: Spacing[3] },
-  trustRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: Spacing[5],
-    flexWrap: "wrap",
-  },
-  trustItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  trustText: { fontSize: FontSize.xs },
 });

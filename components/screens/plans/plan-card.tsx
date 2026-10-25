@@ -143,9 +143,11 @@ interface PlanCardProps {
   enterDelay: number;
   /** "+ 5% GST" when GST is added at checkout. */
   gstNote?: string | null;
+  /** "Save ₹600 vs Weekly Salad", when it is cheaper per item than a smaller plan. */
+  savings?: string | null;
 }
 
-export function HeroPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay, gstNote }: PlanCardProps) {
+export function HeroPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay, gstNote, savings }: PlanCardProps) {
   const { fonts } = useTheme();
   const planRs    = Math.round(plan.price_paise / 100);
   const perBowlRs = Math.round(pricePerBowl(plan) / 100);
@@ -215,6 +217,12 @@ export function HeroPlanCard({ plan, isSelected, onSelect, unavailable, enterDel
             </Text>
           </View>
         </View>
+        {savings ? (
+          <View style={heroStyles.savingsPill}>
+            <Ionicons name="pricetag-outline" size={12} color={Brand.forest} />
+            <Text style={[heroStyles.savingsText, { fontFamily: fonts.bodySemibold }]}>{savings}</Text>
+          </View>
+        ) : null}
 
         {/* Features */}
         <View style={heroStyles.featuresGrid}>
@@ -299,6 +307,11 @@ const heroStyles = StyleSheet.create({
   priceRight: { paddingBottom: 4, gap: 2 },
   priceLabel: { fontSize: 11, color: 'rgba(255,255,255,0.65)' },
   perBowl:    { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.85)' },
+  savingsPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', marginBottom: Spacing[2],
+    backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 4,
+  },
+  savingsText: { fontSize: FontSize.xs, color: Brand.forest },
   featuresGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[2], marginBottom: Spacing[4] },
   featureItem:  { flexDirection: 'row', alignItems: 'center', gap: 6, width: '47%' },
   featureCheck: {
@@ -320,7 +333,7 @@ const heroStyles = StyleSheet.create({
 
 // ─── Standard Plan Card ──────────────────────────────────────────────────────
 
-export function StandardPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay, gstNote }: PlanCardProps) {
+export function StandardPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay, gstNote, savings }: PlanCardProps) {
   const { colors, fonts } = useTheme();
   const planRs    = Math.round(plan.price_paise / 100);
   const units = ['meals?', 'salads?', 'bowls?', plan.unit?.singular, plan.unit?.plural].filter(Boolean).join('|');
@@ -346,6 +359,9 @@ export function StandardPlanCard({ plan, isSelected, onSelect, unavailable, ente
             <Text style={[stdStyles.planMeta, { color: colors.textMuted, fontFamily: fonts.body }]}>
               {countAndPrice(plan)}
             </Text>
+            {savings ? (
+              <Text style={[stdStyles.planMeta, { color: colors.primary, fontFamily: fonts.bodySemibold }]}>{savings}</Text>
+            ) : null}
             {highlight ? (
               <Text style={[stdStyles.planFeature, { color: colors.textMuted, fontFamily: fonts.body }]}>
                 {highlight}
@@ -391,7 +407,7 @@ const stdStyles = StyleSheet.create({
 
 // ─── Fruit Plan Card ──────────────────────────────────────────────────────────
 
-export function FruitPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay, gstNote }: PlanCardProps) {
+export function FruitPlanCard({ plan, isSelected, onSelect, unavailable, enterDelay, gstNote, savings }: PlanCardProps) {
   const { fonts, isDark } = useTheme();
   const planRs    = Math.round(plan.price_paise / 100);
 
@@ -434,6 +450,9 @@ export function FruitPlanCard({ plan, isSelected, onSelect, unavailable, enterDe
             <Text style={[fruitStyles.meta, { color: amberMeta, fontFamily: fonts.body }]}>
               {countAndPrice(plan)}
             </Text>
+            {savings ? (
+              <Text style={[fruitStyles.meta, { color: amberMeta, fontFamily: fonts.bodySemibold }]}>{savings}</Text>
+            ) : null}
             {plan.features?.[0] && (
               <Text style={[fruitStyles.feature, { color: amberMeta, fontFamily: fonts.body }]}>
                 {plan.features[0]}

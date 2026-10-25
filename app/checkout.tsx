@@ -30,7 +30,8 @@ import { useDietaryOptions } from '@/lib/dietary-options';
 import { ProfileCompletionSheet } from '@/components/screens/checkout/profile-completion-sheet';
 import { refusalText } from '@/components/screens/subscriptions/subscription-info';
 import { countOf, daysText, formatDay } from '@/lib/subscription-view';
-import type { DeliveryAddress, Plan } from '@/types/api';
+import type { DeliveryAddress, FirstDeliveryPreference, Plan } from '@/types/api';
+import { policyUrls } from '@/lib/policy-urls';
 import { getAppConfig } from '@/lib/app-config';
 import { isPhoneEmail, phoneFromEmail } from '@/lib/phone-email';
 import { DEFAULT_DELIVERY_DAYS } from '@/lib/delivery-rules';
@@ -123,13 +124,21 @@ export default function CheckoutScreen() {
     ? chosenStyle === 'regular' ? 'high_protein' : chosenStyle
     : plan?.is_high_protein ? 'high_protein' : 'regular';
 
-  const { data: preview, isLoading: previewLoading } = useQuery({
-    queryKey: ['subscription-preview', planId, preferredDays.join(','), deliverySlot],
-    queryFn: () => subscriptionsApi.preview({ planId, preferredDays, timeSlotId: deliverySlot }),
+  const [firstDelivery, setFirstDelivery] = useState<FirstDeliveryPreference>('next_day');
+  const previewQuery = (preference: FirstDeliveryPreference) => ({
+    queryKey: ['subscription-preview', planId, preferredDays.join(','), deliverySlot, preference],
+    queryFn: () =>
+      subscriptionsApi.preview({ planId, preferredDays, timeSlotId: deliverySlot, firstDeliveryPreference: preference }),
     enabled: !!planId,
     staleTime: 60 * 1000,
     retry: false,
   });
+  const { data: nextDayPreview, isLoading: previewLoading } = useQuery(previewQuery('next_day'));
+  const { data: todayPreview } = useQuery(previewQuery('today'));
+  // Starting today is a choice only while today's cutoff is still ahead.
+  const todayOffered =
+    !!todayPreview?.can_buy && !!nextDayPreview && todayPreview.starts_on !== nextDayPreview.starts_on;
+  const preview = todayOffered && firstDelivery === 'today' ? todayPreview : nextDayPreview;
   const refusal = preview && !preview.can_buy ? refusalText(preview) : null;
   // A customer who already holds a subscription keeps their days, time and
   // address for every new one; the server ignores the ones sent.
@@ -289,6 +298,7 @@ export default function CheckoutScreen() {
         preferredDays: preferredDays.length ? preferredDays : [...DEFAULT_DELIVERY_DAYS],
         specialInstructions: specialInstructions.trim() || undefined,
         dietaryPreferences: dietaryPreferences.length ? dietaryPreferences : undefined,
+        firstDeliveryPreference: todayOffered ? firstDelivery : 'next_day',
       });
       orderId = orderRes.orderId;
       const successParams = (amountRs: number, dates: { starts_on: string; ends_on: string }) => ({
@@ -610,6 +620,43 @@ export default function CheckoutScreen() {
                   <Text style={[styles.cardNote, { color: colors.textMuted, fontFamily: fonts.body }]}>
                     Starts after your {preview.after.plan_name} ends on {formatDay(preview.after.ends_on)}.
                   </Text>
+                ) : null}
+                {todayOffered && todayPreview && nextDayPreview ? (
+                  <View style={styles.firstRow}>
+                    {([
+                      { pref: 'today', label: `Today, ${formatDay(todayPreview.starts_on)}` },
+                      { pref: 'next_day', label: formatDay(nextDayPreview.starts_on) },
+                    ] as const).map((option) => {
+                      const chosen = firstDelivery === option.pref;
+                      return (
+                        <TouchableOpacity
+                          key={option.pref}
+                          onPress={() => setFirstDelivery(option.pref)}
+                          activeOpacity={0.8}
+                          accessibilityRole="radio"
+                          accessibilityState={{ checked: chosen }}
+                          style={[
+                            styles.firstChoice,
+                            chosen
+                              ? { backgroundColor: colors.primaryBg, borderColor: colors.primary }
+                              : { backgroundColor: colors.surface, borderColor: colors.border },
+                          ]}
+                        >
+                          <Text style={[styles.firstChoiceLabel, { color: colors.textMuted, fontFamily: fonts.body }]}>
+                            {option.pref === 'today' ? 'Start today' : 'Start later'}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.firstChoiceValue,
+                              { color: chosen ? colors.onPrimaryBg : colors.text, fontFamily: fonts.bodySemibold },
+                            ]}
+                          >
+                            {option.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 ) : null}
               </>
             ) : null}
@@ -1154,6 +1201,9 @@ export default function CheckoutScreen() {
                   colors={colors}
                   fonts={fonts}
                 />
+                <Text style={[styles.deliveryNote, { color: colors.textMuted, fontFamily: fonts.body }]}>
+                  ₹50 for 10–15 km · Sunday: free within 3 km, or a Porter from the outlet
+                </Text>
                 {discount > 0 && (
                   <PriceRow
                     label={`Coupon (${appliedCoupon?.code})`}
@@ -1212,6 +1262,19 @@ export default function CheckoutScreen() {
             </View>
           </View>
         </View>
+
+        <Text style={[styles.termsNote, { color: colors.textMuted, fontFamily: fonts.body }]}>
+          By placing this order, you agree to our{' '}
+          <Text
+            onPress={() =>
+              router.push({ pathname: '/policy-webview', params: { url: policyUrls(null).terms, title: 'Terms & conditions' } })
+            }
+            style={{ color: colors.primary, textDecorationLine: 'underline' }}
+          >
+            terms &amp; conditions
+          </Text>
+          .
+        </Text>
       </ScrollView>
 
       {/* ── Sticky pay bar ────────────────────────────────────────────────── */}
@@ -1390,6 +1453,12 @@ const styles = StyleSheet.create({
   },
   cardLabel: { fontSize: 11, letterSpacing: 0.6 },
   cardNote: { fontSize: FontSize.xs, lineHeight: FontSize.xs * 1.5 },
+  firstRow: { flexDirection: 'row', gap: Spacing[2], marginTop: Spacing[3] },
+  firstChoice: { flex: 1, borderWidth: 1, borderRadius: Radius.md, paddingHorizontal: Spacing[3], paddingVertical: Spacing[2] },
+  firstChoiceLabel: { fontSize: FontSize.xs },
+  firstChoiceValue: { fontSize: FontSize.sm, marginTop: 1 },
+  deliveryNote: { fontSize: FontSize.xs, lineHeight: FontSize.xs * 1.5, marginTop: -2, marginBottom: 4 },
+  termsNote: { fontSize: FontSize.xs, textAlign: 'center', marginHorizontal: Spacing[5], marginTop: Spacing[3] },
   refusalRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing[2] },
   refusalText: { flex: 1, fontSize: FontSize.sm, lineHeight: FontSize.sm * 1.5 },
 

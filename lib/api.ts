@@ -5,6 +5,7 @@ import type {
   CreateOrderPayload,
   CreateOrderResponse,
   CreateRazorpayOrderResponse,
+  DailyMenuResponse,
   DietaryOptionsResponse,
   DeliveriesActionResponse,
   DeliveriesInitResponse,
@@ -23,6 +24,7 @@ import type {
   PlansResponse,
   SlotsResponse,
   ProfileResponse,
+  ReviewsResponse,
   SubscriptionPreviewPayload,
   SubscriptionPreviewResponse,
   SubscriptionSyncResponse,
@@ -32,6 +34,7 @@ import type {
   VideosResponse,
 } from '@/types/api';
 import type { PartnerDeliveriesResponse } from '@/types/delivery-partner';
+import type { CafeMenuResponse, PaidCafeOrder, StartedCafeOrder } from './cafe-order';
 
 import { reportNetworkError } from '@/context/network';
 
@@ -268,6 +271,31 @@ export const paymentsApi = {
     }),
 };
 
+// ─── Café ─────────────────────────────────────────────────────────────────────
+
+/** None of these need a login; a pickup order paid online is priced by the server from the live menu. */
+export const cafeApi = {
+  menu: () => apiFetch<CafeMenuResponse>('/api/v1/cafe/menu'),
+
+  startPayment: (order: { cart: Record<string, number>; name: string; phone: string; time: string | null; notes: string }) =>
+    apiFetch<{ success: boolean; data: StartedCafeOrder }>('/api/v1/cafe/orders', {
+      method: 'POST',
+      body: JSON.stringify(order),
+    }),
+
+  verify: (payload: { orderId: string; razorpayOrderId: string; razorpayPaymentId: string; razorpaySignature: string }) =>
+    apiFetch<{ success: boolean; data: PaidCafeOrder }>('/api/v1/cafe/orders/verify', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  cancel: (orderId: string, razorpayOrderId: string) =>
+    apiFetch<{ success: boolean }>('/api/v1/cafe/orders/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ orderId, razorpayOrderId }),
+    }),
+};
+
 // ─── Invoices ─────────────────────────────────────────────────────────────────
 
 export const invoicesApi = {
@@ -279,6 +307,14 @@ export const invoicesApi = {
 
 export const menuApi = {
   get: () => apiFetch<MenuResponse>('/api/v1/menu'),
+  /** Today's salad, soup and juice, and the week ahead. */
+  daily: () => apiFetch<DailyMenuResponse>('/api/v1/daily-menu'),
+};
+
+// ─── Customer reviews ─────────────────────────────────────────────────────────
+
+export const reviewsApi = {
+  get: () => apiFetch<ReviewsResponse>('/api/v1/reviews'),
 };
 
 // ─── Videos ───────────────────────────────────────────────────────────────────

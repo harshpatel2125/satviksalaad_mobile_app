@@ -11,6 +11,8 @@ interface CheckoutFooterProps {
   count: string;
   selectedDaysCount: number;
   totalRs: number;
+  /** "+ 5% GST" when GST is added at checkout. */
+  gstNote?: string | null;
   canCheckout: boolean;
   onCheckout: () => void;
   style?: ViewStyle;
@@ -20,6 +22,7 @@ export function CheckoutFooter({
   count,
   selectedDaysCount,
   totalRs,
+  gstNote,
   canCheckout,
   onCheckout,
   style,
@@ -44,6 +47,9 @@ export function CheckoutFooter({
           ]}
         >
           ₹{totalRs}
+          {gstNote ? (
+            <Text style={[footerStyles.detail, { color: colors.textMuted, fontFamily: fonts.body }]}> {gstNote}</Text>
+          ) : null}
         </Text>
       </View>
       <TouchableOpacity

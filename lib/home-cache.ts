@@ -6,6 +6,7 @@ import type {
   HomeData,
   Invoice,
   InvoiceDetailResponse,
+  MenuCategory,
   MenuMeal,
   NutritionFlags,
   Plan,
@@ -70,6 +71,7 @@ const MENU_KEY = "ss-menu-v1";
 
 export interface CachedMenuData {
   meals: MenuMeal[];
+  categories?: MenuCategory[];
   showFruits: boolean;
   nutritionFlags: NutritionFlags;
 }

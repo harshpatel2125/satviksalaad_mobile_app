@@ -19,6 +19,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/use-theme";
 import { optimizedImageSource } from "@/lib/image-url";
+import { countOf } from "@/lib/subscription-view";
+import type { Plan } from "@/types/api";
 
 interface TrialMeal {
   id: string;
@@ -28,16 +30,18 @@ interface TrialMeal {
 
 interface Props {
   visible: boolean;
-  trialPlanId: string;
-  trialPrice: number;
+  plan: Plan;
   meals: TrialMeal[];
   onDismiss: () => void;
 }
 
-export function TrialBowlSheet({ visible, trialPlanId, trialPrice, meals, onDismiss }: Props) {
+export function TrialBowlSheet({ visible, plan, meals, onDismiss }: Props) {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const { colors } = useTheme();
+  const { colors, fonts } = useTheme();
+  const trialPrice = Math.round(plan.price_paise / 100);
+  const count = countOf(plan.bowls_count, plan.unit);
+  const perks = plan.features?.length ? plan.features.slice(0, 3) : [count, "Free delivery within 10 km"];
 
   const translateY = useSharedValue(400);
   const opacity = useSharedValue(0);
@@ -97,12 +101,12 @@ export function TrialBowlSheet({ visible, trialPlanId, trialPrice, meals, onDism
             </Text>
           </View>
 
-          <Text style={[styles.headline, { color: colors.text }]}>
-            The 3-Day Protein Trial{"\n"}for ₹{trialPrice} 🥗
+          <Text style={[styles.headline, { color: colors.text, fontFamily: fonts.display }]}>
+            {plan.name} for ₹{trialPrice}
           </Text>
 
-          <Text style={[styles.subtext, { color: colors.textMuted }]}>
-            3 bowls with 30 g of protein each. Your first delivery is on the next delivery day or later.
+          <Text style={[styles.subtext, { color: colors.textMuted, fontFamily: fonts.body }]}>
+            {plan.description?.trim() || `${count} to try. Your first delivery is on the next delivery day or later.`}
           </Text>
 
           {meals.length > 0 && (
@@ -133,13 +137,13 @@ export function TrialBowlSheet({ visible, trialPlanId, trialPrice, meals, onDism
 
           <View style={styles.priceRow}>
             <View>
-              <Text style={[styles.price, { color: colors.primary }]}>₹{trialPrice}</Text>
+              <Text style={[styles.price, { color: colors.primary, fontFamily: fonts.display }]}>₹{trialPrice}</Text>
               <Text style={[styles.priceLabel, { color: colors.textMuted }]}>
-                3 bowls · free within 10 km
+                {count} · free within 10 km
               </Text>
             </View>
             <View style={styles.perks}>
-              {["30 g protein per bowl", "Free delivery within 10 km", "3 bowls over 3 days"].map((p) => (
+              {perks.map((p) => (
                 <Text key={p} style={[styles.perk, { color: colors.textMuted }]}>
                   ✓ {p}
                 </Text>
@@ -151,7 +155,7 @@ export function TrialBowlSheet({ visible, trialPlanId, trialPrice, meals, onDism
             style={[styles.cta, { backgroundColor: colors.primary }]}
             onPress={() => {
               onDismiss();
-              router.push({ pathname: "/plans", params: { planId: trialPlanId } });
+              router.push({ pathname: "/plans", params: { planId: plan.id } });
             }}
           >
             <Text style={styles.ctaText}>Start the trial for ₹{trialPrice}</Text>
@@ -188,7 +192,7 @@ const styles = StyleSheet.create({
   closeBtn: { position: "absolute", top: 16, right: 16, padding: 6, borderRadius: 999 },
   badge: { borderRadius: 999, alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 3, marginBottom: 10 },
   badgeText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
-  headline: { fontSize: 20, fontWeight: "900", lineHeight: 26, marginBottom: 8 },
+  headline: { fontSize: 22, lineHeight: 28, marginBottom: 8 },
   subtext: { fontSize: 13, lineHeight: 20, marginBottom: 14 },
   mealGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 },
   mealCard: { width: "30%", borderRadius: 12, padding: 8, alignItems: "center", gap: 4 },
@@ -196,7 +200,7 @@ const styles = StyleSheet.create({
   mealEmoji: { fontSize: 24 },
   mealName: { fontSize: 10, fontWeight: "600", textAlign: "center" },
   priceRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 },
-  price: { fontSize: 26, fontWeight: "900" },
+  price: { fontSize: 26 },
   priceLabel: { fontSize: 11 },
   perks: { gap: 2 },
   perk: { fontSize: 11 },

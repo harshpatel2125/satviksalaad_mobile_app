@@ -9,17 +9,18 @@ import { CardEdge, FontSize, LineHeight, Radius, Spacing } from '@/constants/the
 import { useAlert } from '@/context/alert';
 import { useTheme } from '@/hooks/use-theme';
 import { callNumber, openMap } from '@/lib/contact-actions';
-import { CAFE, isCafeOpen, useSupportContact } from '@/lib/support-contact';
+import { useCafeInfo, useSupportContact } from '@/lib/support-contact';
 
 export function CafeCard() {
   const { colors, fonts } = useTheme();
   const router = useRouter();
   const { showAlert } = useAlert();
   const { phone, phoneDisplay } = useSupportContact();
-  const open = isCafeOpen();
+  const cafe = useCafeInfo();
+  const open = cafe.isOpen;
 
   async function openDirections() {
-    if (!(await openMap({ gmapUrl: CAFE.mapsUrl }))) {
+    if (!(await openMap({ gmapUrl: cafe.mapsUrl }))) {
       showAlert('Unable to open maps', 'Your device could not open a maps app.');
     }
   }
@@ -59,13 +60,13 @@ export function CafeCard() {
         <View style={s.infoRow}>
           <Ionicons name="location-outline" size={14} color={colors.textMuted} style={s.infoIcon} />
           <Text style={[s.infoText, { color: colors.textSecondary, fontFamily: fonts.body }]}>
-            {CAFE.address}
+            {cafe.address}
           </Text>
         </View>
         <View style={s.infoRow}>
           <Ionicons name="time-outline" size={14} color={colors.textMuted} style={s.infoIcon} />
           <Text style={[s.infoText, { color: colors.textSecondary, fontFamily: fonts.body }]}>
-            {CAFE.hoursLabel}
+            {cafe.hoursLabel}
           </Text>
         </View>
 

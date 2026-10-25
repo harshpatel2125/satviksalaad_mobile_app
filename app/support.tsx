@@ -10,7 +10,8 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { CardEdge, FontSize, Radius, Shadows, Spacing } from '@/constants/theme';
 import { trackScreenOpened } from '@/lib/analytics';
 import { useTheme } from '@/hooks/use-theme';
-import { useSupportContact } from '@/lib/support-contact';
+import { openMap } from '@/lib/contact-actions';
+import { useCafeInfo, useSupportContact } from '@/lib/support-contact';
 import { useAuth } from '@/context/auth';
 
 type QuickAction = {
@@ -41,7 +42,10 @@ export default function MSupport() {
     whatsappUrl,
     email: supportEmail,
     socials,
+    swiggyUrl,
+    zomatoUrl,
   } = useSupportContact();
+  const cafe = useCafeInfo();
 
   const userName = profile?.full_name?.trim() || null;
 
@@ -104,7 +108,7 @@ export default function MSupport() {
                 {"We're here to help"}
               </Text>
               <Text style={[styles.heroSub, { fontFamily: fonts.body }]}>
-                Mon–Sat · 8 AM–8:30 PM
+                Chat with us on WhatsApp, every day
               </Text>
             </View>
           </View>
@@ -161,6 +165,38 @@ export default function MSupport() {
             </View>
           </>
         )}
+
+        <View style={styles.contactGroup}>
+          <SettingsSection title="Deliveries">
+            <MenuRow icon="sunny-outline" label="Lunch" detail="8:00 AM – 1:00 PM" />
+            <MenuRow icon="moon-outline" label="Dinner" detail="4:00 PM – 8:30 PM" />
+            <MenuRow icon="calendar-outline" label="Sunday" detail="Optional, within 3 km" last />
+          </SettingsSection>
+        </View>
+
+        <View style={styles.contactGroup}>
+          <SettingsSection title="Our café">
+            <MenuRow icon="time-outline" label={cafe.isOpen ? 'Open now' : 'Closed now'} detail={cafe.timeLabel} />
+            <MenuRow
+              icon="location-outline"
+              label="Directions"
+              detail="Prahladnagar"
+              last={!swiggyUrl && !zomatoUrl}
+              onPress={() => void openMap({ gmapUrl: cafe.mapsUrl })}
+            />
+            {swiggyUrl ? (
+              <MenuRow
+                icon="bag-handle-outline"
+                label="Order on Swiggy"
+                last={!zomatoUrl}
+                onPress={() => void Linking.openURL(swiggyUrl)}
+              />
+            ) : null}
+            {zomatoUrl ? (
+              <MenuRow icon="restaurant-outline" label="Order on Zomato" last onPress={() => void Linking.openURL(zomatoUrl)} />
+            ) : null}
+          </SettingsSection>
+        </View>
 
         <View style={styles.contactGroup}>
           <SettingsSection title="Still need help?">

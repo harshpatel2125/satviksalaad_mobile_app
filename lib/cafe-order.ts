@@ -1,3 +1,5 @@
+import { formatGstRate } from './gst';
+
 export type DietMark = 'glutenFree' | 'jain' | 'vegan';
 
 /** Rupees. "MRP" is sold at the printed retail price. */
@@ -34,7 +36,6 @@ export interface OpeningHours {
   closes: string;
   daysLabel: string;
   timeLabel: string;
-  closedLabel: string;
 }
 
 export interface CafeMenuData {
@@ -46,6 +47,10 @@ export interface CafeMenuData {
     mapsUrl: string;
     hours: OpeningHours;
   };
+  /** GST added on top of menu prices; 0 when none is charged. */
+  gstRateBps?: number;
+  /** Whether pickup orders can be paid online now. */
+  onlinePayment?: boolean;
 }
 
 export interface CafeMenuResponse {
@@ -70,6 +75,9 @@ export interface CartLine extends Orderable {
 }
 
 export type Fulfilment = 'delivery' | 'pickup';
+
+/** How a pickup is paid in advance: online now, or once the order is confirmed on WhatsApp. */
+export type PickupPayment = 'online' | 'whatsapp';
 
 export interface OrderDetails {
   name: string;
@@ -236,10 +244,44 @@ export function validateOrder(
   return errors;
 }
 
+/** Why `lines` can't be paid online at `now`, or null when they can. */
+export function onlinePaymentBlock(lines: CartLine[], now: Date, hours: OpeningHours): string | null {
+  if (lines.length === 0) return 'Your order is empty.';
+  if (lines.some((line) => line.unitPrice === null)) {
+    return 'Items sold at MRP are paid at the counter, so send this order on WhatsApp.';
+  }
+  const status = openStatus(now, hours);
+  if (!status.isOpen) return `Online payment opens with the café: ${status.detail}.`;
+  return null;
+}
+
+/** A chosen pickup time must still be ahead today; the order is being paid for now. */
+export function pickupTimeError(time: string | null, now: Date): string | null {
+  if (time && toMinutes(time) <= istClock(now).minute) return 'Choose a time later today, or pick as soon as possible.';
+  return null;
+}
+
+/** A café order paid online, with the message to send the café about it. */
+export interface PaidCafeOrder {
+  orderNumber: string;
+  amountPaise: number;
+  message: string;
+}
+
+/** What starting an online payment returns. */
+export interface StartedCafeOrder {
+  orderId: string;
+  orderNumber: string;
+  razorpayOrderId: string;
+  amountPaise: number;
+  keyId: string;
+}
+
 const oneLine = (text: string) => text.trim().replace(/\s*\n\s*/g, ', ');
 
 /** Plain-text WhatsApp message for a validated order. */
-export function buildOrderMessage(lines: CartLine[], order: OrderDetails): string {
+export function buildOrderMessage(lines: CartLine[], order: OrderDetails, gstRateBps = 0): string {
+  const rate = gstRateBps > 0 ? formatGstRate(gstRateBps) : null;
   const delivery = order.fulfilment === 'delivery';
   const phone = indianMobile(order.phone);
   const hasMrp = lines.some((line) => line.unitPrice === null);
@@ -261,6 +303,7 @@ export function buildOrderMessage(lines: CartLine[], order: OrderDetails): strin
     }),
     '',
     `Items total: ${hasMrp ? `${total} + MRP items` : total}`,
+    ...(rate ? [`Plus ${rate} GST.`] : []),
     ...(order.notes.trim() ? [`Notes: ${oneLine(order.notes)}`] : []),
     '',
     delivery

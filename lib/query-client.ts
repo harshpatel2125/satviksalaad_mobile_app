@@ -32,7 +32,7 @@ export const asyncPersister = experimental_createQueryPersister({
   maxAge: 30 * 60 * 1000,
   // A new value drops everything persisted under the old one; change it when a
   // persisted response changes shape.
-  buster: '3',
+  buster: '4',
   prefix: 'ss-',
   serialize: JSON.stringify,
   deserialize: JSON.parse,

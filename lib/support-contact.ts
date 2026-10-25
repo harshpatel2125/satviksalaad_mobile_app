@@ -2,32 +2,44 @@ import type { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import type React from 'react';
 
-import { appSettingsApi } from '@/lib/api';
+import { appSettingsApi, cafeApi } from '@/lib/api';
+import { openStatus, type OpeningHours } from '@/lib/cafe-order';
 import { toWhatsAppNumber } from '@/lib/contact-actions';
-import { CACHE_TTL } from '@/lib/query-client';
+import { asyncPersister, CACHE_TTL } from '@/lib/query-client';
 
 /** Used until app settings load, or when the admin has left a field empty. */
 const FALLBACK_PHONE = '9316102899';
 const FALLBACK_EMAIL = 'care@satviksalaad.com';
 
-export const CAFE = {
-  address: 'GF Shop No. 2, Campus Corner 1, Opp. Prahladnagar Garden, Ahmedabad 380015',
+/** Used until the café menu loads. */
+const FALLBACK_CAFE = {
+  addressText: 'GF Shop No. 2, Campus Corner 1, Opp. Prahladnagar Garden, Ahmedabad 380015',
   mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Satvik+Salaad+Campus+Corner+1+Prahladnagar+Ahmedabad',
-  hoursLabel: 'Every day · 8:00 AM – 11:00 PM',
-  /** 0 = Sunday, as Date#getDay. */
-  openDays: [0, 1, 2, 3, 4, 5, 6],
-  /** Minutes after midnight, IST. */
-  opensAt: 8 * 60,
-  closesAt: 20 * 60,
+  hours: {
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    opens: '08:00',
+    closes: '23:00',
+    daysLabel: 'Every day',
+    timeLabel: '8:00 AM – 11:00 PM',
+  } satisfies OpeningHours,
 };
 
-const IST_OFFSET_MS = 330 * 60 * 1000;
-
-export function isCafeOpen(now: Date = new Date()): boolean {
-  // IST has no daylight saving, so a fixed offset is exact whatever the device's time zone.
-  const ist = new Date(now.getTime() + IST_OFFSET_MS);
-  const minute = ist.getUTCHours() * 60 + ist.getUTCMinutes();
-  return CAFE.openDays.includes(ist.getUTCDay()) && minute >= CAFE.opensAt && minute < CAFE.closesAt;
+/** The café's address and hours as the website has them, and whether it is open now. */
+export function useCafeInfo() {
+  const { data } = useQuery({
+    queryKey: ['cafe-menu'],
+    queryFn: () => cafeApi.menu(),
+    staleTime: CACHE_TTL.menu,
+    persister: asyncPersister.persisterFn,
+  });
+  const outlet = data?.data.outlet ?? FALLBACK_CAFE;
+  return {
+    address: outlet.addressText,
+    mapsUrl: outlet.mapsUrl,
+    hoursLabel: `${outlet.hours.daysLabel} · ${outlet.hours.timeLabel}`,
+    timeLabel: outlet.hours.timeLabel,
+    isOpen: openStatus(new Date(), outlet.hours).isOpen,
+  };
 }
 
 export type SocialLink = {
@@ -66,5 +78,12 @@ export function useSupportContact() {
     whatsappUrl: whatsappNumber ? `https://wa.me/${whatsappNumber}` : null,
     email: settings?.supportEmail?.trim() || FALLBACK_EMAIL,
     socials: candidates.filter((s): s is SocialLink => Boolean(s.url?.trim())),
+    swiggyUrl: settings?.swiggyUrl?.trim() || null,
+    zomatoUrl: settings?.zomatoUrl?.trim() || null,
+    legal: {
+      name: settings?.legalName ?? 'Bellaviso HealthTech LLP',
+      gstin: settings?.gstin ?? null,
+      fssai: settings?.fssai ?? null,
+    },
   };
 }

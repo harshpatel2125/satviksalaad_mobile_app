@@ -290,6 +290,30 @@ export default function ProfileScreen() {
             />
           </SettingsSection>
 
+          <SettingsSection title="More from Satvik Salaad">
+            <MenuRow
+              icon="cafe-outline"
+              label="Café menu"
+              onPress={() => router.push("/cafe-menu")}
+            />
+            <MenuRow
+              icon="nutrition-outline"
+              label="Diet consultation"
+              onPress={() => router.push("/diet-consultation")}
+            />
+            <MenuRow
+              icon="business-outline"
+              label="Office Salaad for your team"
+              last
+              onPress={() =>
+                router.push({
+                  pathname: "/policy-webview",
+                  params: { url: "https://satviksalaad.com/corporate", title: "Office Salaad" },
+                })
+              }
+            />
+          </SettingsSection>
+
           <SettingsSection title="Support">
             <MenuRow
               icon="chatbubble-ellipses-outline"

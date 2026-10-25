@@ -17,6 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { MenuSkeleton } from '@/components/skeletons/menu-skeleton';
 import { MealCard } from '@/components/screens/menu/meal-card';
+import { TodayMenu } from '@/components/screens/menu/today-menu';
 import { FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useQueryFocusRefetch } from '@/hooks/useQueryFocusRefetch';
 import { useTheme } from '@/hooks/use-theme';
@@ -24,16 +25,16 @@ import { menuApi } from '@/lib/api';
 import { readMenuCache, writeMenuCache } from '@/lib/home-cache';
 import { optimizedImageUrls } from '@/lib/image-url';
 import { asyncPersister, CACHE_TTL } from '@/lib/query-client';
-import type { MenuMeal, NutritionFlags } from '@/types/api';
+import type { MenuCategory, MenuMeal, NutritionFlags } from '@/types/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-type Category = 'salad' | 'fruit';
 
 interface Meal {
   id: string;
   name: string;
-  category: Category;
+  category: string;
+  categoryName: string;
+  dietLabels: string[];
   kcal: number | null;
   protein: number | null;
   fiber: number | null;
@@ -44,12 +45,8 @@ interface Meal {
   ingredients: string[];
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const TABS: { id: Category; emoji: string; label: string }[] = [
-  { id: 'salad', emoji: '🥗', label: 'Salad Bowl' },
-  { id: 'fruit', emoji: '🍎', label: 'Fruit Bowl' },
-];
+/** Names for servers that don't send categories yet. */
+const FALLBACK_NAMES: Record<string, string> = { salad: 'Salads', fruit: 'Fruit bowls' };
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
@@ -58,14 +55,14 @@ export default function MenuScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<Category>('salad');
+  const [activeTab, setActiveTab] = useState<string | null>(null);
 
   // Synchronous MMKV read before first render — shows menu instantly on second+ opens
   const [cachedMenu, setCachedMenu] = useState(() => readMenuCache());
   // Only play skeleton/FadeIn animations on first install (no cache)
   const hadNoCache = React.useRef(cachedMenu === null);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['menu'],
     queryFn: menuApi.get,
     staleTime: CACHE_TTL.menu,
@@ -78,6 +75,7 @@ export default function MenuScreen() {
     if (!data?.data) return;
     const next = {
       meals: data.data.meals,
+      categories: data.data.categories,
       showFruits: data.data.showFruits,
       nutritionFlags: data.data.nutritionFlags,
     };
@@ -109,11 +107,26 @@ export default function MenuScreen() {
   // Skeleton only on first install (no cache). Second+ opens: instant content.
   const showSkeleton = cachedMenu === null && isLoading;
 
+  const categories = useMemo<MenuCategory[]>(() => {
+    const listed = data?.data?.categories ?? cachedMenu?.categories;
+    const all = listed?.length
+      ? listed
+      : [...new Set(rawMeals.map((m) => m.category))].map((slug) => ({
+          slug,
+          name: FALLBACK_NAMES[slug] ?? slug,
+          unit_singular: 'bowl',
+          unit_plural: 'bowls',
+        }));
+    return all.filter((c) => (c.slug === 'fruit' ? showFruits : rawMeals.some((m) => m.category === c.slug)));
+  }, [data?.data?.categories, cachedMenu?.categories, rawMeals, showFruits]);
+
   const meals = useMemo<Meal[]>(() =>
     rawMeals.map((m: MenuMeal) => ({
       id: m.id,
       name: m.name,
-      category: (m.category === 'fruit' ? 'fruit' : 'salad') as Category,
+      category: m.category,
+      categoryName: categories.find((c) => c.slug === m.category)?.name ?? FALLBACK_NAMES[m.category] ?? m.category,
+      dietLabels: m.diet_labels ?? [],
       kcal: m.calories,
       protein: m.protein_g,
       fiber: m.fiber_g,
@@ -123,7 +136,7 @@ export default function MenuScreen() {
       description: m.description ?? null,
       ingredients: m.ingredients ?? [],
     })),
-  [rawMeals]);
+  [rawMeals, categories]);
 
   // Prefetch all meal images into expo-image's disk cache as soon as URLs are
   // available — fires immediately from MMKV on second+ opens, or after the
@@ -137,8 +150,8 @@ export default function MenuScreen() {
     }
   }, [rawMeals]);
 
-  const effectiveTab: Category = (!showFruits && activeTab === 'fruit') ? 'salad' : activeTab;
-  const visible = meals.filter(m => m.category === effectiveTab);
+  const effectiveTab = categories.some((c) => c.slug === activeTab) ? activeTab : categories[0]?.slug ?? null;
+  const visible = meals.filter((m) => m.category === effectiveTab);
 
   return (
     <View style={[s.root, { backgroundColor: colors.background }]}>
@@ -170,47 +183,38 @@ export default function MenuScreen() {
               Our Menu
             </Text>
           </View>
-          {showFruits ? (
-            <View
-              style={[
-                s.toggle,
-                {
-                  backgroundColor: colors.surface2,
-                },
-              ]}
-            >
-              {TABS.map((tab) => {
-                const active = activeTab === tab.id;
-                return (
-                  <TouchableOpacity
-                    key={tab.id}
-                    style={[
-                      s.toggleBtn,
-                      active && {
-                        backgroundColor: colors.primary,
-                        ...Shadows.sm,
-                      },
-                    ]}
-                    onPress={() => setActiveTab(tab.id)}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      style={[
-                        s.toggleText,
-                        {
-                          color: active ? "#fff" : colors.textMuted,
-                          fontFamily: active ? fonts.bodySemibold : fonts.body,
-                        },
-                      ]}
-                    >
-                      {tab.emoji} {tab.id === "salad" ? "Salad" : "Fruit"}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ) : null}
         </View>
+        {categories.length > 1 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
+            {categories.map((category) => {
+              const active = effectiveTab === category.slug;
+              return (
+                <TouchableOpacity
+                  key={category.slug}
+                  onPress={() => setActiveTab(category.slug)}
+                  activeOpacity={0.8}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                  style={[
+                    s.chip,
+                    active
+                      ? { backgroundColor: colors.primary, ...Shadows.sm }
+                      : { backgroundColor: colors.surface2 },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      s.toggleText,
+                      { color: active ? '#fff' : colors.textMuted, fontFamily: active ? fonts.bodySemibold : fonts.body },
+                    ]}
+                  >
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : null}
       </View>
 
       {showSkeleton ? (
@@ -237,8 +241,19 @@ export default function MenuScreen() {
               />
             }
           >
+            <TodayMenu />
             {visible.length === 0 ? (
-              <EmptyState icon="leaf-outline" title="No meals yet" body="Check back soon!" />
+              isError && rawMeals.length === 0 ? (
+                <EmptyState
+                  icon="cloud-offline-outline"
+                  title="The menu didn't load"
+                  body="Check your connection and try again."
+                  actionLabel="Try again"
+                  onAction={() => void refetch()}
+                />
+              ) : (
+                <EmptyState icon="leaf-outline" title="No meals yet" body="Check back soon!" />
+              )
             ) : (
               visible.map((meal) => (
                 <View key={meal.id} style={s.group}>
@@ -259,6 +274,8 @@ export default function MenuScreen() {
                           carbs: String(meal.carbs ?? 0),
                           fat: String(meal.fat ?? 0),
                           category: meal.category,
+                          categoryName: meal.categoryName,
+                          dietLabels: meal.dietLabels.join(","),
                           description: meal.description ?? "",
                           ingredients: meal.ingredients.join(","),
                           showCalories: String(nutritionFlags.calories),
@@ -303,13 +320,8 @@ const s = StyleSheet.create({
     fontWeight: FontWeight.semibold as "600",
     letterSpacing: -0.5,
   },
-  toggle: {
-    flexDirection: "row",
-    borderRadius: Radius.full,
-    padding: 3,
-    gap: 2,
-  },
-  toggleBtn: {
+  chips: { gap: 6, paddingTop: 12 },
+  chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: Radius.full,

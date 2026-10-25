@@ -53,14 +53,14 @@ const SLIDES = [
     id: "skip",
     tag: "SKIP ANYTIME",
     title: "Skip any delivery.\nZero guilt.",
-    body: "Skip a day before its cutoff and that bowl moves to the end (up to 15 extra days).",
+    body: "Skip a day before its cutoff and that bowl moves to the end of your plan.",
     cta: "Next →",
   },
   {
     id: "schedule",
     tag: "YOUR SCHEDULE",
     title: "You pick the days\n& slot.",
-    body: "Mon to Sun. Choose the days that suit you, for lunch or dinner, and change them anytime.",
+    body: "Mon to Sat, with Sunday optional. Choose your days and lunch or dinner, and change them before the cutoff.",
     cta: "Let's go →",
   },
 ] as const;
@@ -140,7 +140,7 @@ function SubscriptionArt({
               <Text style={[artS.subBadgeText, { color: colors.primary }]}>Fresh daily</Text>
             </View>
             <View style={[artS.subBadge, { backgroundColor: colors.primaryBg }]}>
-              <Text style={[artS.subBadgeText, { color: colors.primary }]}>Mon to Sun</Text>
+              <Text style={[artS.subBadgeText, { color: colors.primary }]}>Mon to Sat</Text>
             </View>
           </View>
           <View style={artS.subNoAuto}>

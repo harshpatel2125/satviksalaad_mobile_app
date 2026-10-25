@@ -19,6 +19,7 @@ import { Brand, CardEdge, FontSize, FontWeight, Radius, Spacing } from '@/consta
 import { useAuth } from '@/context/auth';
 import { useTheme } from '@/hooks/use-theme';
 import { optimizedImageSource } from '@/lib/image-url';
+import { DietBadges } from '@/components/screens/menu/diet-badges';
 import { PHOTO_COMING_SOON } from '@/components/screens/menu/meal-card';
 import { readHomeCache } from '@/lib/home-cache';
 import type { HomeCriticalResponse, SubscriptionsResponse } from '@/types/api';
@@ -67,6 +68,8 @@ export default function MealDetailScreen() {
     carbs?: string;
     fat?: string;
     category?: string;
+    categoryName?: string;
+    dietLabels?: string;
     description?: string;
     ingredients?: string;
     showCalories?: string;
@@ -84,6 +87,8 @@ export default function MealDetailScreen() {
   const carbs       = parseInt(params.carbs ?? '0', 10);
   const fat         = parseInt(params.fat ?? '0', 10);
   const category    = params.category ?? 'salad';
+  const categoryName = params.categoryName || (category === 'fruit' ? 'Fruit Bowl' : 'Salad Bowl');
+  const dietLabels  = params.dietLabels ? params.dietLabels.split(',').filter(Boolean) : [];
   const description = params.description && params.description.length > 0 ? params.description : null;
   const ingredients = params.ingredients && params.ingredients.length > 0
     ? params.ingredients.split(',').map(s => s.trim()).filter(Boolean)
@@ -171,7 +176,7 @@ export default function MealDetailScreen() {
                 color={isFruit ? colors.orange : colors.primaryDark}
               />
               <Text style={[styles.pillText, { color: isFruit ? colors.orange : colors.primaryDark, fontFamily: fonts.bodySemibold }]}>
-                {isFruit ? 'Fruit Bowl' : 'Salad Bowl'}
+                {categoryName}
               </Text>
             </View>
             <View style={[styles.pill, { backgroundColor: colors.surface2, borderColor: colors.border, borderWidth: 1 }]}>
@@ -186,6 +191,7 @@ export default function MealDetailScreen() {
           <Text style={[styles.mealName, { color: colors.text, fontFamily: fonts.display }]}>
             {name}
           </Text>
+          <DietBadges labels={dietLabels} />
 
           {/* Description */}
           {description ? (

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -14,6 +15,7 @@ import {
   View,
   type LayoutChangeEvent,
 } from 'react-native';
+import RazorpayCheckout from 'react-native-razorpay';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Skeleton } from '@/components/skeleton';
@@ -21,10 +23,10 @@ import { BottomActionBar } from '@/components/ui/bottom-action-bar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Text } from '@/components/ui/text';
-import { CardEdge, FontSize, LineHeight, Radius, Spacing } from '@/constants/theme';
+import { Brand, CardEdge, FontSize, LineHeight, Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import { useTheme } from '@/hooks/use-theme';
-import { apiFetch } from '@/lib/api';
+import { ApiError, cafeApi } from '@/lib/api';
 import {
   addOnOrderable,
   buildOrderMessage,
@@ -35,15 +37,16 @@ import {
   itemsTotal,
   lineTotal,
   MAX_QUANTITY,
+  onlinePaymentBlock,
   openStatus,
   parseCart,
+  pickupTimeError,
   rupees,
   toMinutes,
   validateOrder,
   whatsappOrderUrl,
   type CafeItem,
   type CafeMenuData,
-  type CafeMenuResponse,
   type CafeSection,
   type CartLine,
   type DietMark,
@@ -51,8 +54,11 @@ import {
   type Orderable,
   type OrderDetails,
   type OrderField,
+  type PaidCafeOrder,
+  type PickupPayment,
 } from '@/lib/cafe-order';
 import { toWhatsAppNumber } from '@/lib/contact-actions';
+import { addGst, formatGstRate, rupeesFromPaise } from '@/lib/gst';
 import { readAddressesCache } from '@/lib/home-cache';
 import { asyncPersister, CACHE_TTL } from '@/lib/query-client';
 import { storage } from '@/lib/storage';
@@ -123,7 +129,7 @@ export default function CafeMenuScreen() {
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['cafe-menu'],
-    queryFn: () => apiFetch<CafeMenuResponse>('/api/v1/cafe/menu'),
+    queryFn: () => cafeApi.menu(),
     staleTime: CACHE_TTL.menu,
     persister: asyncPersister.persisterFn,
   });
@@ -150,6 +156,8 @@ export default function CafeMenuScreen() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [openedAt, setOpenedAt] = useState(() => new Date());
   const [sent, setSent] = useState(false);
+  const [payment, setPayment] = useState<PickupPayment>('online');
+  const [paid, setPaid] = useState<PaidCafeOrder | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
   const scrollY = useRef(0);
@@ -165,6 +173,8 @@ export default function CafeMenuScreen() {
   const shown = activeCategory ? sections.filter((section) => section.id === activeCategory) : sections;
 
   const status = menu ? openStatus(new Date(), menu.outlet.hours) : null;
+  const gstRateBps = menu?.gstRateBps ?? 0;
+  const onlinePayment = menu?.onlinePayment ?? false;
 
   function setQuantity(orderable: Orderable, quantity: number) {
     const next = Math.max(0, Math.min(MAX_QUANTITY, quantity));
@@ -237,8 +247,9 @@ export default function CafeMenuScreen() {
           >
             <View style={s.intro} onLayout={(e) => setFiltersTop(e.nativeEvent.layout.height)}>
               <Text style={[s.introText, { color: colors.textSecondary, fontFamily: fonts.body }]}>
-                Add what you&apos;d like and send the order on WhatsApp for delivery or pickup. All orders are paid in
-                advance: we confirm your order on WhatsApp and share the payment details.
+                {onlinePayment
+                  ? "Add what you'd like. All orders are paid in advance: pickup online here or on WhatsApp once we confirm it, delivery on WhatsApp."
+                  : "Add what you'd like and send the order on WhatsApp for delivery or pickup. All orders are paid in advance: we share the payment details on WhatsApp."}
               </Text>
               <View style={s.legend}>
                 {MARKS.map((mark) => (
@@ -251,6 +262,7 @@ export default function CafeMenuScreen() {
                 ))}
                 <Text style={[s.legendText, { color: colors.textMuted, fontFamily: fonts.body }]}>
                   kcal and protein per serving where listed · prices in ₹
+                  {gstRateBps > 0 ? `, plus ${formatGstRate(gstRateBps)} GST` : ''}
                 </Text>
               </View>
             </View>
@@ -400,6 +412,17 @@ export default function CafeMenuScreen() {
             whatsappNumber={whatsappNumber}
             sent={sent}
             onSent={() => setSent(true)}
+            quantities={quantities}
+            gstRateBps={gstRateBps}
+            onlinePayment={onlinePayment}
+            payment={payment}
+            onPayment={setPayment}
+            paid={paid}
+            onPaid={(order) => {
+              setPaid(order);
+              setEdited({});
+            }}
+            onNewOrder={() => setPaid(null)}
           />
         </>
       )}
@@ -551,16 +574,28 @@ function AddOns({
   );
 }
 
-function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+function Choice({
+  label,
+  selected,
+  disabled = false,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
   const { colors, fonts } = useTheme();
   return (
     <TouchableOpacity
       onPress={onPress}
+      disabled={disabled}
       activeOpacity={0.8}
       accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
+      accessibilityState={{ checked: selected, disabled }}
       style={[
         s.choice,
+        disabled && { opacity: 0.5 },
         selected
           ? { backgroundColor: colors.primaryBg, borderColor: colors.primary }
           : { backgroundColor: colors.surface, borderColor: colors.border },
@@ -617,6 +652,14 @@ interface CheckoutSheetProps {
   whatsappNumber: string;
   sent: boolean;
   onSent: () => void;
+  quantities: Record<string, number>;
+  gstRateBps: number;
+  onlinePayment: boolean;
+  payment: PickupPayment;
+  onPayment: (payment: PickupPayment) => void;
+  paid: PaidCafeOrder | null;
+  onPaid: (order: PaidCafeOrder) => void;
+  onNewOrder: () => void;
 }
 
 function CheckoutSheet({
@@ -635,12 +678,21 @@ function CheckoutSheet({
   whatsappNumber,
   sent,
   onSent,
+  quantities,
+  gstRateBps,
+  onlinePayment,
+  payment,
+  onPayment,
+  paid,
+  onPaid,
+  onNewOrder,
 }: CheckoutSheetProps) {
   const { colors, fonts } = useTheme();
   const insets = useSafeAreaInsets();
   const [errors, setErrors] = useState<Partial<Record<OrderField, string>>>({});
   const [attempted, setAttempted] = useState(false);
   const [openError, setOpenError] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
   const fieldY = useRef<Partial<Record<OrderField, number>>>({});
@@ -650,6 +702,10 @@ function CheckoutSheet({
 
   const delivery = details.fulfilment === 'delivery';
   const hasMrp = lines.some((line) => line.unitPrice === null);
+  const pickupOnline = onlinePayment && !delivery;
+  const onlineBlock = pickupOnline ? onlinePaymentBlock(lines, openedAt, hours) : null;
+  const payOnline = pickupOnline && payment === 'online' && !onlineBlock;
+  const gst = addGst(total * 100, gstRateBps);
   const slots = useMemo(() => timeSlots(hours, openedAt), [hours, openedAt]);
   const inputStyle = [
     s.input,
@@ -665,8 +721,71 @@ function CheckoutSheet({
     if (attempted) setErrors(validateOrder({ ...details, ...patch }, hours));
   }
 
+  async function payNow() {
+    setPaying(true);
+    let started: Awaited<ReturnType<typeof cafeApi.startPayment>>['data'];
+    try {
+      started = (
+        await cafeApi.startPayment({
+          cart: quantities,
+          name: details.name,
+          phone: details.phone,
+          time: details.time,
+          notes: details.notes,
+        })
+      ).data;
+    } catch (err) {
+      const fields = err instanceof ApiError ? (err.body.fields as Partial<Record<OrderField, string>> | undefined) : undefined;
+      if (fields) setErrors(fields);
+      setOpenError(err instanceof ApiError ? err.message : "We couldn't start the payment. Check your connection and try again.");
+      setPaying(false);
+      return;
+    }
+
+    let response: { razorpay_payment_id: string; razorpay_signature?: string };
+    try {
+      response = await RazorpayCheckout.open({
+        key: started.keyId,
+        amount: started.amountPaise,
+        currency: 'INR',
+        name: 'Satvik Salaad',
+        description: `Café order ${started.orderNumber}`,
+        order_id: started.razorpayOrderId,
+        prefill: { name: details.name, contact: details.phone },
+        theme: { color: Brand.forest },
+        modal: { handleback: true },
+      });
+    } catch (err) {
+      // Closing the payment sheet rejects too; either way nothing was charged.
+      cafeApi.cancel(started.orderId, started.razorpayOrderId).catch(() => {});
+      const description = (err as { code?: number; description?: string }).description ?? '';
+      const cancelled = (err as { code?: number }).code === 2 || /cancel|dismiss/i.test(description);
+      if (!cancelled) setOpenError(description || 'Payment failed. Please try again.');
+      setPaying(false);
+      return;
+    }
+
+    try {
+      const { data } = await cafeApi.verify({
+        orderId: started.orderId,
+        razorpayOrderId: started.razorpayOrderId,
+        razorpayPaymentId: response.razorpay_payment_id,
+        razorpaySignature: response.razorpay_signature ?? '',
+      });
+      onPaid(data);
+    } catch (err) {
+      setOpenError(
+        err instanceof ApiError ? err.message : "We couldn't confirm your payment. Please call us; nothing is lost.",
+      );
+    } finally {
+      setPaying(false);
+    }
+  }
+
   async function send() {
     const found = validateOrder(details, hours);
+    const late = payOnline && !found.time ? pickupTimeError(details.time, new Date()) : null;
+    if (late) found.time = late;
     setErrors(found);
     setAttempted(true);
     setOpenError(null);
@@ -681,8 +800,12 @@ function CheckoutSheet({
       inputs[firstInvalid]?.current?.focus();
       return;
     }
+    if (payOnline) {
+      await payNow();
+      return;
+    }
     try {
-      await Linking.openURL(whatsappOrderUrl(whatsappNumber, buildOrderMessage(lines, details)));
+      await Linking.openURL(whatsappOrderUrl(whatsappNumber, buildOrderMessage(lines, details, gstRateBps)));
       onSent();
     } catch {
       setOpenError("WhatsApp didn't open. Install WhatsApp, or call the café to place your order.");
@@ -715,7 +838,40 @@ function CheckoutSheet({
           </TouchableOpacity>
         </View>
 
-        {lines.length === 0 ? (
+        {paid ? (
+          <ScrollView contentContainerStyle={[s.sheetBody, { paddingBottom: insets.bottom + Spacing[6] }]}>
+            <View accessibilityLiveRegion="polite" style={[s.paidBox, { backgroundColor: colors.primaryBg }]}>
+              <View style={s.paidHead}>
+                <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+                <Text style={[s.paidTitle, { color: colors.onPrimaryBg, fontFamily: fonts.bodySemibold }]}>
+                  Paid {rupeesFromPaise(paid.amountPaise)}. Thank you!
+                </Text>
+              </View>
+              <Text style={[s.paidText, { color: colors.onPrimaryBg, fontFamily: fonts.body }]}>
+                Your order number is{' '}
+                <Text style={{ fontFamily: fonts.bodySemibold }}>{paid.orderNumber}</Text>. Show it at the counter when
+                you pick up.
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => void Linking.openURL(whatsappOrderUrl(whatsappNumber, paid.message)).catch(() => {})}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              style={[s.sendBtn, { backgroundColor: colors.primary }]}
+            >
+              <Ionicons name="logo-whatsapp" size={18} color={colors.textOnPrimary} />
+              <Text style={[s.sendText, { color: colors.textOnPrimary, fontFamily: fonts.bodySemibold }]}>
+                Send it to the café on WhatsApp
+              </Text>
+            </TouchableOpacity>
+            <Text style={[s.hint, { color: colors.textMuted, fontFamily: fonts.body }]}>
+              So the kitchen can start on it right away.
+            </Text>
+            <TouchableOpacity onPress={onNewOrder} hitSlop={8} accessibilityRole="button" style={s.clearBtn}>
+              <Text style={[s.clearText, { color: colors.primary, fontFamily: fonts.bodySemibold }]}>Start a new order</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        ) : lines.length === 0 ? (
           <EmptyState
             icon="bag-outline"
             title="Your order is empty"
@@ -764,8 +920,29 @@ function CheckoutSheet({
                   {hasMrp ? (
                     <Text style={[s.lineEach, { color: colors.textMuted, fontFamily: fonts.body }]}>+ MRP items</Text>
                   ) : null}
+                  {gstRateBps > 0 && !payOnline ? (
+                    <Text style={[s.lineEach, { color: colors.textMuted, fontFamily: fonts.body }]}>
+                      + {formatGstRate(gstRateBps)} GST
+                    </Text>
+                  ) : null}
                 </View>
               </View>
+              {payOnline && gst.taxPaise > 0 ? (
+                <>
+                  <View style={s.gstRow}>
+                    <Text style={[s.lineEach, { color: colors.textMuted, fontFamily: fonts.body }]}>
+                      GST ({formatGstRate(gstRateBps)})
+                    </Text>
+                    <Text style={[s.lineEach, { color: colors.text, fontFamily: fonts.body }]}>{rupeesFromPaise(gst.taxPaise)}</Text>
+                  </View>
+                  <View style={s.gstRow}>
+                    <Text style={[s.totalLabel, { color: colors.text, fontFamily: fonts.bodySemibold }]}>To pay</Text>
+                    <Text style={[s.totalLabel, { color: colors.text, fontFamily: fonts.bodySemibold }]}>
+                      {rupeesFromPaise(gst.totalPaise)}
+                    </Text>
+                  </View>
+                </>
+              ) : null}
             </View>
             <TouchableOpacity onPress={onClear} hitSlop={8} accessibilityRole="button" style={s.clearBtn}>
               <Text style={[s.clearText, { color: colors.textMuted, fontFamily: fonts.bodyMedium }]}>Clear cart</Text>
@@ -813,6 +990,27 @@ function CheckoutSheet({
                 </Text>
               ) : null}
             </Field>
+
+            {pickupOnline ? (
+              <Field label="Payment">
+                <View style={s.choiceRow}>
+                  <Choice
+                    label="Pay online now"
+                    selected={payOnline}
+                    disabled={!!onlineBlock}
+                    onPress={() => onPayment('online')}
+                  />
+                  <Choice label="Order on WhatsApp" selected={!payOnline} onPress={() => onPayment('whatsapp')} />
+                </View>
+              </Field>
+            ) : null}
+            <Text style={[s.hint, { color: colors.textMuted, fontFamily: fonts.body }]}>
+              {delivery
+                ? 'Delivery orders are paid in advance: we confirm your order and the delivery charge on WhatsApp and share the payment details.'
+                : payOnline
+                  ? "Paid online in advance: UPI, cards or net banking, through Razorpay. You'll get an order number to show at the counter."
+                  : `${onlineBlock ? `${onlineBlock} ` : ''}We confirm your order on WhatsApp and share the payment details. Please pay in advance, before you collect.`}
+            </Text>
 
             {delivery ? (
               <Field label="Full delivery address" error={errors.address} onLayout={trackY('address')}>
@@ -890,13 +1088,19 @@ function CheckoutSheet({
 
             <TouchableOpacity
               onPress={() => void send()}
+              disabled={paying}
               activeOpacity={0.85}
               accessibilityRole="button"
-              style={[s.sendBtn, { backgroundColor: colors.primary }]}
+              accessibilityState={{ disabled: paying, busy: paying }}
+              style={[s.sendBtn, { backgroundColor: colors.primary, opacity: paying ? 0.7 : 1 }]}
             >
-              <Ionicons name="logo-whatsapp" size={18} color={colors.textOnPrimary} />
+              {paying ? (
+                <ActivityIndicator size="small" color={colors.textOnPrimary} />
+              ) : (
+                <Ionicons name={payOnline ? 'card-outline' : 'logo-whatsapp'} size={18} color={colors.textOnPrimary} />
+              )}
               <Text style={[s.sendText, { color: colors.textOnPrimary, fontFamily: fonts.bodySemibold }]}>
-                Send order on WhatsApp
+                {payOnline ? (paying ? 'Opening payment…' : `Pay ${rupeesFromPaise(gst.totalPaise)} now`) : 'Send order on WhatsApp'}
               </Text>
             </TouchableOpacity>
             {openError ? (
@@ -904,12 +1108,15 @@ function CheckoutSheet({
             ) : null}
 
             <View style={s.notes}>
-              <Text style={[s.hint, { color: colors.textMuted, fontFamily: fonts.body }]}>
-                We confirm your order, and the delivery range for deliveries, on WhatsApp. Delivery is free within 3 km of
-                our Prahladnagar café; further away, we&apos;ll share the Porter charge.
-              </Text>
+              {delivery ? (
+                <Text style={[s.hint, { color: colors.textMuted, fontFamily: fonts.body }]}>
+                  Delivery is free within 3 km of our Prahladnagar café; further away, we&apos;ll share the Porter charge.
+                </Text>
+              ) : null}
               <Text style={[s.hint, { color: colors.text, fontFamily: fonts.bodyMedium }]}>
-                All café orders are paid in advance, once we confirm them on WhatsApp.
+                {onlinePayment
+                  ? 'All café orders are paid in advance: pickup online here or on WhatsApp, delivery on WhatsApp.'
+                  : 'All café orders are paid in advance: we share the payment details on WhatsApp.'}
               </Text>
             </View>
 
@@ -1100,4 +1307,9 @@ const s = StyleSheet.create({
   sendText: { fontSize: FontSize.base },
   notes: { gap: 6 },
   sentBox: { borderRadius: Radius.md, padding: Spacing[3], gap: 4 },
+  gstRow: { flexDirection: 'row', justifyContent: 'space-between', paddingBottom: Spacing[2] },
+  paidBox: { borderRadius: Radius.md, padding: Spacing[4], gap: Spacing[2] },
+  paidHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
+  paidTitle: { fontSize: FontSize.base },
+  paidText: { fontSize: FontSize.sm, lineHeight: FontSize.sm * LineHeight.normal },
 });

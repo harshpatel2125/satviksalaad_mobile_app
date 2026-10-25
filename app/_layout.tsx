@@ -425,6 +425,7 @@ function RootLayoutInner() {
         <Stack.Screen name="settings" />
         <Stack.Screen name="support" />
         <Stack.Screen name="cafe-menu" />
+        <Stack.Screen name="diet-consultation" />
         <Stack.Screen name="plans" />
         <Stack.Screen name="invoice-detail" />
         <Stack.Screen name="skip-delivery" options={{ animation: "none" }} />

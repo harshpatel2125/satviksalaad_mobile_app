@@ -33,7 +33,7 @@ export function MenuRow({ icon, label, detail, disabled, rightElement, onPress, 
       style={[s.row, disabled && { opacity: 0.45 }]}
       onPress={disabled ? undefined : onPress}
       activeOpacity={disabled ? 1 : 0.6}
-      disabled={disabled}
+      disabled={disabled || !onPress}
     >
       <Ionicons name={icon} size={ICON_SIZE} color={disabled ? colors.textMuted : colors.primary} />
       <Text style={[s.label, { color: colors.text, fontFamily: fonts.bodyMedium }]} numberOfLines={1}>
@@ -46,7 +46,7 @@ export function MenuRow({ icon, label, detail, disabled, rightElement, onPress, 
               {detail}
             </Text>
           ) : null}
-          <Ionicons name="chevron-forward" size={14} color={colors.textDisabled} />
+          {onPress ? <Ionicons name="chevron-forward" size={14} color={colors.textDisabled} /> : null}
         </>
       )}
       {!last ? (

@@ -9,6 +9,8 @@ import { Brand, FontSize, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { optimizedImageSource } from '@/lib/image-url';
 
+import { DietBadges } from './diet-badges';
+
 export const PHOTO_COMING_SOON = 'Photo coming soon. Our team is working on it.';
 
 interface MealCardProps {
@@ -17,6 +19,7 @@ interface MealCardProps {
     kcal: number | null;
     protein: number | null;
     imageUrl: string | null;
+    dietLabels?: string[];
   };
   showCalories?: boolean;
   showProtein?: boolean;
@@ -54,6 +57,7 @@ export function MealCard({ meal, showCalories = true, showProtein = true, onPres
         <Text style={[s.photoNote, { fontFamily: fonts.body }]}>{PHOTO_COMING_SOON}</Text>
       )}
       <View style={s.info}>
+        <DietBadges labels={meal.dietLabels} onImage />
         <Text style={[s.name, { fontFamily: fonts.display }]} numberOfLines={2}>
           {meal.name}
         </Text>

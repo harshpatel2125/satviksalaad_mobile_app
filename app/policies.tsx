@@ -74,6 +74,11 @@ export default function PoliciesScreen() {
 
   const policies = buildPolicies(data?.data ?? null);
   const supportEmail = data?.data.supportEmail ?? null;
+  const legalName = data?.data.legalName ?? 'Bellaviso HealthTech LLP';
+  const registrations = [
+    data?.data.gstin ? `GSTIN ${data.data.gstin}` : null,
+    data?.data.fssai ? `FSSAI Lic. No. ${data.data.fssai}` : null,
+  ].filter(Boolean);
 
   const openPolicy = (item: PolicyItem) => {
     router.push({
@@ -113,13 +118,21 @@ export default function PoliciesScreen() {
           ))}
         </Animated.View>
 
-        {supportEmail && (
-          <Animated.View entering={FadeInDown.delay(160).springify().damping(18)}>
+        <Animated.View entering={FadeInDown.delay(160).springify().damping(18)} style={styles.footerBlock}>
+          {supportEmail ? (
             <Text style={[styles.footer, { color: colors.textMuted, fontFamily: fonts.body }]}>
               For questions, contact us at {supportEmail}
             </Text>
-          </Animated.View>
-        )}
+          ) : null}
+          <Text style={[styles.footer, { color: colors.textMuted, fontFamily: fonts.body }]}>
+            Satvik Salaad is run by {legalName}.
+          </Text>
+          {registrations.length > 0 ? (
+            <Text style={[styles.footer, { color: colors.textMuted, fontFamily: fonts.body }]}>
+              {registrations.join(' · ')}
+            </Text>
+          ) : null}
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -198,9 +211,9 @@ const styles = StyleSheet.create({
   rowTitle: { fontSize: FontSize.base },
   rowDesc:  { fontSize: FontSize.xs, marginTop: 2 },
 
+  footerBlock: { gap: 4, paddingTop: Spacing[2] },
   footer: {
     fontSize: FontSize.xs,
     textAlign: 'center',
-    paddingTop: Spacing[2],
   },
 });

@@ -166,7 +166,7 @@ export interface SubscriptionPreviewPayload {
   planId: string;
   preferredDays?: string[];
   timeSlotId?: string;
-  firstDeliveryPreference?: string;
+  firstDeliveryPreference?: FirstDeliveryPreference;
 }
 
 /** The days, time and address every subscription of the customer shares. */
@@ -308,7 +308,11 @@ export interface CreateOrderPayload {
   preferredDays?: string[];
   specialInstructions?: string;
   dietaryPreferences?: string[];
+  firstDeliveryPreference?: FirstDeliveryPreference;
 }
+
+/** "today" starts on the earliest day still open to change; "next_day" never before tomorrow. */
+export type FirstDeliveryPreference = 'today' | 'next_day';
 
 export interface CreateOrderResponse {
   success: boolean;
@@ -477,6 +481,15 @@ export interface MenuMeal {
   fat_g: number | null;
   ingredients: string[] | null;
   category: string;
+  /** "Vegan", "Jain", "Gluten free" and any other tags, as the website shows them. */
+  diet_labels?: string[];
+}
+
+export interface MenuCategory {
+  slug: string;
+  name: string;
+  unit_singular: string;
+  unit_plural: string;
 }
 
 export interface NutritionFlags {
@@ -491,8 +504,56 @@ export interface MenuResponse {
   success: boolean;
   data: {
     meals: MenuMeal[];
+    /** In menu order; older servers leave it out. */
+    categories?: MenuCategory[];
     showFruits: boolean;
     nutritionFlags: NutritionFlags;
+  };
+}
+
+// ─── Daily menu ───────────────────────────────────────────────────────────────
+
+export interface DayMenu {
+  /** YYYY-MM-DD, IST. */
+  date: string;
+  /** Monday = 1 … Sunday = 7. */
+  weekday: number;
+  weekdayName: string;
+  salad: string | null;
+  soup: string | null;
+  juice: string | null;
+}
+
+export interface DailyMenuResponse {
+  success: boolean;
+  data: {
+    /** Today's dishes, or Monday's on a Sunday with no salad. */
+    next: (DayMenu & { isToday: boolean }) | null;
+    /** The next seven days that have dishes. */
+    week: DayMenu[];
+  };
+}
+
+// ─── Customer reviews ─────────────────────────────────────────────────────────
+
+export interface CustomerReview {
+  id: string;
+  name: string;
+  stars: number;
+  /** Empty shows the rating alone. */
+  text: string;
+  /** As the source words it, e.g. "Jul 2026". */
+  when: string;
+}
+
+export interface ReviewsResponse {
+  success: boolean;
+  data: {
+    /** The Google rating, e.g. "4.7"; null to hide it. */
+    rating: string | null;
+    count: number | null;
+    url: string | null;
+    reviews: CustomerReview[];
   };
 }
 
@@ -648,6 +709,11 @@ export interface AppSettings {
   facebookUrl?:       string | null;
   youtubeUrl?:        string | null;
   linkedinUrl?:       string | null;
+  swiggyUrl?:         string | null;
+  zomatoUrl?:         string | null;
+  legalName?:         string;
+  gstin?:             string | null;
+  fssai?:             string | null;
   showBuiltByCard:    boolean;
 }
 

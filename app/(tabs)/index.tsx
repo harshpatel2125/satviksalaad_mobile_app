@@ -34,6 +34,8 @@ import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
 import { homeApi, notificationsApi, plansApi, subscriptionsApi } from '@/lib/api';
 import { useTrialPopupTrigger } from '@/hooks/use-trial-popup-trigger';
 import { TrialBowlSheet } from '@/components/screens/home/trial-bowl-sheet';
+import { ReviewsStrip } from '@/components/screens/home/reviews-strip';
+import { TodayMenu } from '@/components/screens/menu/today-menu';
 import { optimizedImageUrls } from '@/lib/image-url';
 import { CACHE_TTL, homeStaticPersister } from '@/lib/query-client';
 import { istDate } from '@/lib/delivery-rules';
@@ -358,6 +360,8 @@ export default function HomeScreen() {
             />
           </View>
 
+          <TodayMenu />
+
           <VideoStrip
             onOpen={(video) => router.push({ pathname: "/video-player", params: { id: video.id } })}
             onSeeAll={() => router.navigate("/(tabs)/videos")}
@@ -375,14 +379,37 @@ export default function HomeScreen() {
           )}
         </View>
 
+        <View style={styles.bleed}>
+          <ReviewsStrip />
+        </View>
+
+        <TouchableOpacity
+          onPress={() => router.push("/diet-consultation")}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          style={[styles.dietCard, { backgroundColor: colors.primary }]}
+        >
+          <View style={styles.dietText}>
+            <Text style={[styles.dietEyebrow, { color: colors.accent, fontFamily: fonts.bodySemibold }]}>
+              1:1 DIET CONSULTATION
+            </Text>
+            <Text style={[styles.dietTitle, { color: colors.textOnPrimary, fontFamily: fonts.display }]}>
+              Plan your diet with Divya Agrawal
+            </Text>
+            <Text style={[styles.dietSub, { color: colors.textOnPrimary, fontFamily: fonts.body }]}>
+              Our founder and clinical dietitian · from ₹1,000
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textOnPrimary} />
+        </TouchableOpacity>
+
         <CafeCard />
       </Animated.ScrollView>
 
       {trialOffered && trialPlan && (
         <TrialBowlSheet
           visible={showTrialSheet}
-          trialPlanId={trialPlan.id}
-          trialPrice={Math.round(trialPlan.price_paise / 100)}
+          plan={trialPlan}
           meals={(staticData?.data.meals ?? []).slice(0, 6).map((m) => ({
             id: m.name,
             name: m.name,
@@ -408,6 +435,18 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing[2],
   },
+  bleed: { marginHorizontal: -Spacing[5] },
+  dietCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[3],
+    borderRadius: Radius.xl,
+    padding: Spacing[4],
+  },
+  dietText: { flex: 1, gap: 2 },
+  dietEyebrow: { fontSize: 11, letterSpacing: 1.1 },
+  dietTitle: { fontSize: FontSize.lg },
+  dietSub: { fontSize: FontSize.xs, opacity: 0.8 },
   emptyCard: {
     borderRadius: 16,
     padding: Spacing[4],
