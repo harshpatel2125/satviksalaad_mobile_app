@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { LayoutAnimation, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { CardEdge, FontSize, LineHeight, Radius, Spacing } from '@/constants/theme';
+import { Brand, CardEdge, FontSize, LineHeight, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { zonesApi } from '@/lib/api';
 import { formatGstRate } from '@/lib/gst';
@@ -123,7 +123,7 @@ export function PlansInfo({ plans, gstRateBps, onDietConsultation, style }: Plan
         </View>
       </View>
 
-      <View style={[s.combo, { backgroundColor: colors.primary }]}>
+      <View style={[s.combo, { backgroundColor: Brand.forest }]}>
         <View style={s.comboHead}>
           <Text style={[s.comboTitle, { color: colors.textOnPrimary, fontFamily: fonts.display }]}>Diet + Meal Combo</Text>
           <View style={[s.comboBadge, { backgroundColor: colors.accent }]}>

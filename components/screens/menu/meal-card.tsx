@@ -1,11 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { LinearGradient } from "expo-linear-gradient";
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 
-import { Brand, FontSize, Radius } from '@/constants/theme';
+import { Brand, CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { optimizedImageSource } from '@/lib/image-url';
 
@@ -21,105 +19,76 @@ interface MealCardProps {
     imageUrl: string | null;
     dietLabels?: string[];
   };
+  /** Card width, so a grid can size its columns. */
+  width: number;
   showCalories?: boolean;
   showProtein?: boolean;
   onPress: () => void;
 }
 
-export function MealCard({ meal, showCalories = true, showProtein = true, onPress }: MealCardProps) {
-  const { fonts, isDark } = useTheme();
-  const src =
-    optimizedImageSource(meal.imageUrl) ?? require("@/assets/images/hero-image.png");
-
-  const hasKcal    = showCalories && (meal.kcal ?? 0) > 0;
-  const hasProtein = showProtein  && (meal.protein ?? 0) > 0;
-
-  const gradientColors: [string, string, ...string[]] = isDark
-    ? ['transparent', 'transparent', 'rgba(0,0,0,0.01)', 'rgba(0,0,0,0.06)', 'rgba(0,0,0,0.18)', 'rgba(0,0,0,0.38)', 'rgba(0,0,0,0.58)', 'rgba(0,0,0,0.72)']
-    : ['transparent', 'transparent', 'rgba(0,0,0,0.01)', 'rgba(0,0,0,0.04)', 'rgba(0,0,0,0.12)', 'rgba(0,0,0,0.28)', 'rgba(0,0,0,0.46)', 'rgba(0,0,0,0.60)'];
+/** One menu item as a small grid card: photo, name, nutrition and diet marks. */
+export function MealCard({ meal, width, showCalories = true, showProtein = true, onPress }: MealCardProps) {
+  const { colors, fonts } = useTheme();
+  const photo = optimizedImageSource(meal.imageUrl);
+  const facts = [
+    showCalories && (meal.kcal ?? 0) > 0 ? `${meal.kcal} kcal` : null,
+    showProtein && (meal.protein ?? 0) > 0 ? `${meal.protein} g protein` : null,
+  ].filter(Boolean);
 
   return (
-    <TouchableOpacity style={s.wrap} onPress={onPress} activeOpacity={0.92}>
-      <Image
-        source={src}
-        style={StyleSheet.absoluteFillObject}
-        contentFit="cover"
-        cachePolicy="memory-disk"
-        transition={200}
-        recyclingKey={meal.imageUrl ?? 'placeholder'}
-      />
-      <LinearGradient
-        colors={gradientColors}
-        locations={[0, 0.32, 0.46, 0.57, 0.67, 0.78, 0.90, 1]}
-        style={StyleSheet.absoluteFillObject}
-      />
-      {!meal.imageUrl && (
-        <Text style={[s.photoNote, { fontFamily: fonts.body }]}>{PHOTO_COMING_SOON}</Text>
-      )}
-      <View style={s.info}>
-        <DietBadges labels={meal.dietLabels} onImage />
-        <Text style={[s.name, { fontFamily: fonts.display }]} numberOfLines={2}>
+    <TouchableOpacity
+      style={[s.card, { width, backgroundColor: colors.surface }, CardEdge]}
+      onPress={onPress}
+      activeOpacity={0.9}
+      accessibilityRole="button"
+      accessibilityLabel={meal.name}
+    >
+      <View style={[s.photo, { backgroundColor: Brand.sageLight }]}>
+        {photo ? (
+          <Image
+            source={photo}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
+            recyclingKey={meal.imageUrl ?? undefined}
+          />
+        ) : (
+          <>
+            <Image source={require('@/assets/images/hero-image.png')} style={StyleSheet.absoluteFill} contentFit="cover" />
+            <Text style={[s.photoNote, { fontFamily: fonts.body }]}>Photo coming soon</Text>
+          </>
+        )}
+      </View>
+      <View style={s.body}>
+        <Text style={[s.name, { color: colors.text, fontFamily: fonts.bodySemibold }]} numberOfLines={2}>
           {meal.name}
         </Text>
-        <View style={s.metaRow}>
-          {hasKcal && (
-            <Text style={[s.meta, { fontFamily: fonts.body }]}>
-              {meal.kcal} kcal
-            </Text>
-          )}
-          {hasKcal && hasProtein && <View style={s.sep} />}
-          {hasProtein && (
-            <Text style={[s.meta, { fontFamily: fonts.body }]}>
-              {meal.protein}g protein
-            </Text>
-          )}
-          <View style={[s.sep, { marginLeft: "auto" }]} />
-          <Ionicons
-            name="chevron-forward"
-            size={13}
-            color="rgba(255,255,255,0.6)"
-          />
-        </View>
+        {facts.length > 0 ? (
+          <Text style={[s.facts, { color: colors.primary, fontFamily: fonts.bodyMedium }]} numberOfLines={1}>
+            {facts.join(' · ')}
+          </Text>
+        ) : null}
+        <DietBadges labels={meal.dietLabels} />
       </View>
-
     </TouchableOpacity>
   );
 }
 
 const s = StyleSheet.create({
-  wrap: { height: 210, borderRadius: Radius["2xl"], overflow: "hidden" },
+  card: { borderRadius: Radius.lg, overflow: 'hidden' },
+  photo: { width: '100%', aspectRatio: 4 / 3 },
   photoNote: {
-    position: "absolute",
-    top: 12,
-    left: 16,
-    right: 16,
-    textAlign: "center",
-    fontSize: FontSize.xs,
+    position: 'absolute',
+    bottom: 6,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    fontSize: 10,
     color: Brand.forest,
     opacity: 0.7,
   },
-  info: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 14,
-    gap: 5,
-  },
-  name: {
-    fontSize: FontSize.xl,
-    color: "#fff",
-    letterSpacing: -0.3,
-    lineHeight: FontSize.xl * 1.22,
-  },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  sep: {
-    width: 3,
-    height: 3,
-    borderRadius: 99,
-    backgroundColor: "rgba(255,255,255,0.45)",
-  },
-  meta: { fontSize: FontSize.sm, color: "rgba(255,255,255,0.75)" },
+  body: { padding: Spacing[2.5], gap: 4 },
+  name: { fontSize: FontSize.sm, lineHeight: FontSize.sm * 1.3 },
+  facts: { fontSize: FontSize.xs },
 });

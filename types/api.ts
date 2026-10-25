@@ -534,29 +534,6 @@ export interface DailyMenuResponse {
   };
 }
 
-// ─── Customer reviews ─────────────────────────────────────────────────────────
-
-export interface CustomerReview {
-  id: string;
-  name: string;
-  stars: number;
-  /** Empty shows the rating alone. */
-  text: string;
-  /** As the source words it, e.g. "Jul 2026". */
-  when: string;
-}
-
-export interface ReviewsResponse {
-  success: boolean;
-  data: {
-    /** The Google rating, e.g. "4.7"; null to hide it. */
-    rating: string | null;
-    count: number | null;
-    url: string | null;
-    reviews: CustomerReview[];
-  };
-}
-
 // ─── Videos ───────────────────────────────────────────────────────────────────
 export type VideoCategoryId = 'yoga' | 'fitness' | 'nutrition' | 'wellness';
 

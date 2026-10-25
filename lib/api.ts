@@ -24,7 +24,6 @@ import type {
   PlansResponse,
   SlotsResponse,
   ProfileResponse,
-  ReviewsResponse,
   SubscriptionPreviewPayload,
   SubscriptionPreviewResponse,
   SubscriptionSyncResponse,
@@ -309,12 +308,6 @@ export const menuApi = {
   get: () => apiFetch<MenuResponse>('/api/v1/menu'),
   /** Today's salad, soup and juice, and the week ahead. */
   daily: () => apiFetch<DailyMenuResponse>('/api/v1/daily-menu'),
-};
-
-// ─── Customer reviews ─────────────────────────────────────────────────────────
-
-export const reviewsApi = {
-  get: () => apiFetch<ReviewsResponse>('/api/v1/reviews'),
 };
 
 // ─── Videos ───────────────────────────────────────────────────────────────────

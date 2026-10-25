@@ -30,11 +30,10 @@ import { SubscriptionHero } from '@/components/screens/home/subscription-hero';
 import { VideoStrip } from '@/components/screens/home/video-strip';
 import { DeliveryDayCard } from '@/components/screens/deliveries/delivery-day-card';
 import { deliveryDetailParams, useSubscriptions } from '@/components/screens/subscriptions/subscription-info';
-import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
+import { Brand, CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
 import { homeApi, notificationsApi, plansApi, subscriptionsApi } from '@/lib/api';
 import { useTrialPopupTrigger } from '@/hooks/use-trial-popup-trigger';
 import { TrialBowlSheet } from '@/components/screens/home/trial-bowl-sheet';
-import { ReviewsStrip } from '@/components/screens/home/reviews-strip';
 import { TodayMenu } from '@/components/screens/menu/today-menu';
 import { optimizedImageUrls } from '@/lib/image-url';
 import { CACHE_TTL, homeStaticPersister } from '@/lib/query-client';
@@ -360,12 +359,7 @@ export default function HomeScreen() {
             />
           </View>
 
-          <TodayMenu />
-
-          <VideoStrip
-            onOpen={(video) => router.push({ pathname: "/video-player", params: { id: video.id } })}
-            onSeeAll={() => router.navigate("/(tabs)/videos")}
-          />
+          <TodayMenu onSeeMenu={() => router.navigate("/(tabs)/menu")} />
 
           {(showSkeleton || recentLogs.length > 0) && (
             <RecentActivity
@@ -379,15 +373,11 @@ export default function HomeScreen() {
           )}
         </View>
 
-        <View style={styles.bleed}>
-          <ReviewsStrip />
-        </View>
-
         <TouchableOpacity
           onPress={() => router.push("/diet-consultation")}
           activeOpacity={0.85}
           accessibilityRole="button"
-          style={[styles.dietCard, { backgroundColor: colors.primary }]}
+          style={[styles.dietCard, { backgroundColor: Brand.forest }]}
         >
           <View style={styles.dietText}>
             <Text style={[styles.dietEyebrow, { color: colors.accent, fontFamily: fonts.bodySemibold }]}>
@@ -404,6 +394,11 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         <CafeCard />
+
+        <VideoStrip
+          onOpen={(video) => router.push({ pathname: "/video-player", params: { id: video.id } })}
+          onSeeAll={() => router.navigate("/(tabs)/videos")}
+        />
       </Animated.ScrollView>
 
       {trialOffered && trialPlan && (
@@ -435,7 +430,6 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing[2],
   },
-  bleed: { marginHorizontal: -Spacing[5] },
   dietCard: {
     flexDirection: 'row',
     alignItems: 'center',

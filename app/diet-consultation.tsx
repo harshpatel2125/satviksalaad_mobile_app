@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Text } from '@/components/ui/text';
-import { CardEdge, FontSize, LineHeight, Radius, Spacing } from '@/constants/theme';
+import { Brand, CardEdge, FontSize, LineHeight, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { toWhatsAppNumber } from '@/lib/contact-actions';
 import { useSupportContact } from '@/lib/support-contact';
@@ -95,7 +95,7 @@ export default function DietConsultationScreen() {
           </Text>
         </View>
 
-        <View style={[s.founder, { backgroundColor: colors.primary }]}>
+        <View style={[s.founder, { backgroundColor: Brand.forest }]}>
           <Text style={[s.founderTitle, { color: colors.accent, fontFamily: fonts.bodySemibold }]}>
             {FOUNDER.title.toUpperCase()}
           </Text>

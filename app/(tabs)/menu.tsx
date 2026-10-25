@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Text } from '@/components/ui/text';
@@ -45,6 +46,8 @@ interface Meal {
   ingredients: string[];
 }
 
+const GRID_GAP = 12;
+
 /** Names for servers that don't send categories yet. */
 const FALLBACK_NAMES: Record<string, string> = { salad: 'Salads', fruit: 'Fruit bowls' };
 
@@ -54,6 +57,9 @@ export default function MenuScreen() {
   const { colors, fonts } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const columns = width >= 600 ? 3 : 2;
+  const cardWidth = Math.floor((width - Spacing[5] * 2 - GRID_GAP * (columns - 1)) / columns);
 
   const [activeTab, setActiveTab] = useState<string | null>(null);
 
@@ -255,10 +261,12 @@ export default function MenuScreen() {
                 <EmptyState icon="leaf-outline" title="No meals yet" body="Check back soon!" />
               )
             ) : (
-              visible.map((meal) => (
-                <View key={meal.id} style={s.group}>
+              <View style={s.grid}>
+                {visible.map((meal) => (
                   <MealCard
+                    key={meal.id}
                     meal={meal}
+                    width={cardWidth}
                     showCalories={nutritionFlags.calories}
                     showProtein={nutritionFlags.protein}
                     onPress={() =>
@@ -287,8 +295,8 @@ export default function MenuScreen() {
                       })
                     }
                   />
-                </View>
-              ))
+                ))}
+              </View>
             )}
           </ScrollView>
         </Animated.View>
@@ -330,7 +338,7 @@ const s = StyleSheet.create({
   scroll: {
     paddingTop: Spacing[4],
     paddingHorizontal: Spacing[5],
-    gap: Spacing[5],
+    gap: Spacing[4],
   },
-  group: { gap: 10 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
 });

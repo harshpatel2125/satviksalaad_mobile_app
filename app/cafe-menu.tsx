@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -8,12 +9,14 @@ import {
   Linking,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
   type LayoutChangeEvent,
+  type ViewStyle,
 } from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -65,6 +68,7 @@ import { storage } from '@/lib/storage';
 import { useSupportContact } from '@/lib/support-contact';
 
 type DietMarks = CafeMenuData['dietMarks'];
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
 type SetQuantity = (orderable: Orderable, quantity: number) => void;
 
 const CART_KEY = 'ss-cafe-cart';
@@ -150,8 +154,10 @@ export default function CafeMenuScreen() {
   const total = itemsTotal(lines);
   const summary = `${plural(count, 'item')} · ${rupees(total)}`;
 
-  const [category, setCategory] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [only, setOnly] = useState<DietMark[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [sizing, setSizing] = useState<{ sectionId: string; item: CafeItem } | null>(null);
   const [details, setDetails] = useState<OrderDetails>(EMPTY_DETAILS);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [openedAt, setOpenedAt] = useState(() => new Date());
@@ -160,17 +166,30 @@ export default function CafeMenuScreen() {
   const [paid, setPaid] = useState<PaidCafeOrder | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
-  const scrollY = useRef(0);
-  const [filtersTop, setFiltersTop] = useState(0);
+  const tabsRef = useRef<ScrollView>(null);
+  const listTop = useRef(0);
+  const navHeight = useRef(0);
+  const sectionTops = useRef<Record<string, number>>({});
+  const tabSpots = useRef<Record<string, number>>({});
+  // While a tapped tab scrolls the list, the scroll must not move the highlight back.
+  const jumping = useRef(false);
 
-  const sections = (menu?.sections ?? [])
-    .map((section) => ({
-      ...section,
-      items: section.items.filter((item) => only.every((mark) => item.marks?.includes(mark))),
-    }))
-    .filter((section) => section.items.length > 0);
-  const activeCategory = sections.some((section) => section.id === category) ? category : null;
-  const shown = activeCategory ? sections.filter((section) => section.id === activeCategory) : sections;
+  const query = search.trim().toLowerCase();
+  const sections = useMemo(
+    () =>
+      (menu?.sections ?? [])
+        .map((section) => ({
+          ...section,
+          items: section.items.filter(
+            (item) =>
+              only.every((mark) => item.marks?.includes(mark)) &&
+              (!query || item.name.toLowerCase().includes(query) || !!item.ingredients?.toLowerCase().includes(query)),
+          ),
+        }))
+        .filter((section) => section.items.length > 0),
+    [menu, only, query],
+  );
+  const current = sections.some((section) => section.id === activeId) ? activeId : (sections[0]?.id ?? null);
 
   const status = menu ? openStatus(new Date(), menu.outlet.hours) : null;
   const gstRateBps = menu?.gstRateBps ?? 0;
@@ -178,8 +197,9 @@ export default function CafeMenuScreen() {
 
   function setQuantity(orderable: Orderable, quantity: number) {
     const next = Math.max(0, Math.min(MAX_QUANTITY, quantity));
-    setEdited((current) => {
-      const { [orderable.key]: _previous, ...rest } = current ?? quantities;
+    if (next > (quantities[orderable.key] ?? 0)) void Haptics.selectionAsync().catch(() => {});
+    setEdited((existing) => {
+      const { [orderable.key]: _previous, ...rest } = existing ?? quantities;
       return next > 0 ? { ...rest, [orderable.key]: next } : rest;
     });
   }
@@ -189,33 +209,59 @@ export default function CafeMenuScreen() {
     setSent(false);
   }
 
-  function pickCategory(id: string | null) {
-    setCategory(id);
-    if (scrollY.current > filtersTop) scrollRef.current?.scrollTo({ y: filtersTop, animated: false });
+  function toggleMark(mark: DietMark) {
+    setOnly((marks) => (marks.includes(mark) ? marks.filter((m) => m !== mark) : [...marks, mark]));
   }
 
-  function toggleMark(mark: DietMark) {
-    setOnly((current) => (current.includes(mark) ? current.filter((m) => m !== mark) : [...current, mark]));
+  function highlight(id: string) {
+    if (id === current) return;
+    setActiveId(id);
+    const x = tabSpots.current[id];
+    if (x !== undefined) tabsRef.current?.scrollTo({ x: Math.max(0, x - Spacing[5]), animated: true });
+  }
+
+  function trackSection(y: number) {
+    if (jumping.current) return;
+    const line = y + navHeight.current + Spacing[3];
+    let id = sections[0]?.id;
+    for (const section of sections) {
+      const top = sectionTops.current[section.id];
+      if (top !== undefined && listTop.current + top <= line) id = section.id;
+    }
+    if (id) highlight(id);
+  }
+
+  function jumpTo(id: string) {
+    const top = sectionTops.current[id];
+    if (top === undefined) return;
+    highlight(id);
+    jumping.current = true;
+    scrollRef.current?.scrollTo({ y: listTop.current + top - navHeight.current, animated: true });
+    setTimeout(() => {
+      jumping.current = false;
+    }, 500);
   }
 
   function openCheckout() {
-    setDetails((current) => ({
-      ...current,
-      name: current.name || profile?.full_name?.trim() || '',
-      phone: current.phone || profile?.phone || '',
-      address: current.address || defaultAddressText(session?.user?.id),
+    setDetails((existing) => ({
+      ...existing,
+      name: existing.name || profile?.full_name?.trim() || '',
+      phone: existing.phone || profile?.phone || '',
+      address: existing.address || defaultAddressText(session?.user?.id),
     }));
     setOpenedAt(new Date());
     setCheckoutOpen(true);
   }
 
+  const storeFacts: { icon: IconName; text: string }[] = [
+    { icon: 'bag-handle-outline', text: 'Pickup or delivery' },
+    { icon: 'card-outline', text: 'Paid in advance' },
+    ...(gstRateBps > 0 ? [{ icon: 'receipt-outline' as IconName, text: `Prices + ${formatGstRate(gstRateBps)} GST` }] : []),
+  ];
+
   return (
     <View style={[s.root, { backgroundColor: colors.background }]}>
-      <ScreenHeader
-        title="Café menu"
-        subtitle={status ? `${status.isOpen ? 'Open now' : 'Closed'}${status.detail ? ` · ${status.detail}` : ''}` : undefined}
-        onBack={() => router.back()}
-      />
+      <ScreenHeader title="Café menu" onBack={() => router.back()} />
 
       {!menu ? (
         isLoading ? (
@@ -238,70 +284,61 @@ export default function CafeMenuScreen() {
           <ScrollView
             ref={scrollRef}
             stickyHeaderIndices={[1]}
-            onScroll={(e) => {
-              scrollY.current = e.nativeEvent.contentOffset.y;
-            }}
+            onScroll={(e) => trackSection(e.nativeEvent.contentOffset.y)}
             scrollEventThrottle={32}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: count > 0 ? Spacing[6] : insets.bottom + Spacing[6] }}
           >
-            <View style={s.intro} onLayout={(e) => setFiltersTop(e.nativeEvent.layout.height)}>
-              <Text style={[s.introText, { color: colors.textSecondary, fontFamily: fonts.body }]}>
-                {onlinePayment
-                  ? "Add what you'd like. All orders are paid in advance: pickup online here or on WhatsApp once we confirm it, delivery on WhatsApp."
-                  : "Add what you'd like and send the order on WhatsApp for delivery or pickup. All orders are paid in advance: we share the payment details on WhatsApp."}
-              </Text>
-              <View style={s.legend}>
-                {MARKS.map((mark) => (
-                  <View key={mark} style={s.legendItem}>
-                    <MarkBadge mark={mark} dietMarks={menu.dietMarks} />
-                    <Text style={[s.legendText, { color: colors.textMuted, fontFamily: fonts.body }]}>
-                      {menu.dietMarks[mark]?.label}
-                    </Text>
-                  </View>
-                ))}
-                <Text style={[s.legendText, { color: colors.textMuted, fontFamily: fonts.body }]}>
-                  kcal and protein per serving where listed · prices in ₹
-                  {gstRateBps > 0 ? `, plus ${formatGstRate(gstRateBps)} GST` : ''}
-                </Text>
-              </View>
-            </View>
-
-            <View style={[s.filters, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipRow}>
-                {[{ id: null, title: 'All' }, ...sections].map((section) => {
-                  const active = activeCategory === section.id;
-                  return (
-                    <TouchableOpacity
-                      key={section.id ?? 'all'}
-                      onPress={() => pickCategory(section.id)}
-                      activeOpacity={0.8}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: active }}
+            <View style={s.top}>
+              <View style={[s.store, { backgroundColor: colors.surface }, CardEdge]}>
+                <View style={s.storeHead}>
+                  <View style={[s.statusPill, { backgroundColor: status?.isOpen ? colors.successBg : colors.surface2 }]}>
+                    <View style={[s.statusDot, { backgroundColor: status?.isOpen ? colors.success : colors.textMuted }]} />
+                    <Text
                       style={[
-                        s.chip,
-                        active
-                          ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                          : { backgroundColor: colors.surface, borderColor: colors.border },
+                        s.statusText,
+                        { color: status?.isOpen ? colors.success : colors.textMuted, fontFamily: fonts.bodySemibold },
                       ]}
                     >
-                      <Text
-                        style={[
-                          s.chipText,
-                          {
-                            color: active ? colors.textOnPrimary : colors.text,
-                            fontFamily: active ? fonts.bodySemibold : fonts.bodyMedium,
-                          },
-                        ]}
-                      >
-                        {section.title}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-              <View style={s.dietRow}>
-                <Text style={[s.dietLabel, { color: colors.textMuted, fontFamily: fonts.body }]}>Show only</Text>
+                      {status?.isOpen ? 'Open now' : 'Closed'}
+                    </Text>
+                  </View>
+                  {status?.detail ? (
+                    <Text style={[s.storeDetail, { color: colors.textMuted, fontFamily: fonts.body }]}>{status.detail}</Text>
+                  ) : null}
+                </View>
+                <Text style={[s.storeName, { color: colors.text, fontFamily: fonts.display }]}>Prahladnagar café</Text>
+                <View style={s.storeFacts}>
+                  {storeFacts.map((fact) => (
+                    <View key={fact.text} style={s.storeFact}>
+                      <Ionicons name={fact.icon} size={13} color={colors.primary} />
+                      <Text style={[s.storeFactText, { color: colors.textSecondary, fontFamily: fonts.body }]}>{fact.text}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              <View style={[s.search, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Ionicons name="search" size={17} color={colors.textMuted} />
+                <TextInput
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder="Search dishes or ingredients"
+                  placeholderTextColor={colors.textMuted}
+                  returnKeyType="search"
+                  autoCorrect={false}
+                  style={[s.searchInput, { color: colors.text, fontFamily: fonts.body }]}
+                />
+                {search ? (
+                  <TouchableOpacity onPress={() => setSearch('')} hitSlop={10} accessibilityLabel="Clear search">
+                    <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.dietRow}>
                 {MARKS.map((mark) => {
                   const on = only.includes(mark);
                   return (
@@ -318,57 +355,119 @@ export default function CafeMenuScreen() {
                           : { backgroundColor: colors.surface, borderColor: colors.border },
                       ]}
                     >
-                      {on ? <Ionicons name="checkmark" size={12} color={colors.onPrimaryBg} /> : null}
+                      <MarkBadge mark={mark} dietMarks={menu.dietMarks} />
                       <Text
-                        style={[
-                          s.dietChipText,
-                          { color: on ? colors.onPrimaryBg : colors.text, fontFamily: fonts.bodySemibold },
-                        ]}
+                        style={[s.dietChipText, { color: on ? colors.onPrimaryBg : colors.text, fontFamily: fonts.bodyMedium }]}
                       >
                         {menu.dietMarks[mark]?.label}
+                      </Text>
+                      {on ? <Ionicons name="checkmark" size={13} color={colors.onPrimaryBg} /> : null}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            <View
+              style={[s.nav, { backgroundColor: colors.background, borderBottomColor: colors.border }]}
+              onLayout={(e) => {
+                navHeight.current = e.nativeEvent.layout.height;
+              }}
+            >
+              <ScrollView ref={tabsRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabRow}>
+                {sections.map((section) => {
+                  const active = current === section.id;
+                  return (
+                    <TouchableOpacity
+                      key={section.id}
+                      onLayout={(e) => {
+                        tabSpots.current[section.id] = e.nativeEvent.layout.x;
+                      }}
+                      onPress={() => jumpTo(section.id)}
+                      activeOpacity={0.8}
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: active }}
+                      style={[
+                        s.tab,
+                        active
+                          ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                          : { backgroundColor: colors.surface, borderColor: colors.border },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          s.tabText,
+                          {
+                            color: active ? colors.textOnPrimary : colors.text,
+                            fontFamily: active ? fonts.bodySemibold : fonts.bodyMedium,
+                          },
+                        ]}
+                      >
+                        {section.title}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
-              </View>
+              </ScrollView>
             </View>
 
-            <View style={s.list}>
+            <View
+              style={s.list}
+              onLayout={(e) => {
+                listTop.current = e.nativeEvent.layout.y;
+              }}
+            >
               {sections.length === 0 ? (
                 <View style={[s.noMatch, { borderColor: colors.border }]}>
+                  <Ionicons name="search-outline" size={22} color={colors.textMuted} />
                   <Text style={[s.noMatchText, { color: colors.textMuted, fontFamily: fonts.body }]}>
-                    Nothing on the menu carries all of those marks.
+                    {query ? `Nothing on the menu matches “${search.trim()}”.` : 'Nothing on the menu carries all of those marks.'}
                   </Text>
-                  <TouchableOpacity onPress={() => setOnly([])} accessibilityRole="button" hitSlop={8}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSearch('');
+                      setOnly([]);
+                    }}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                  >
                     <Text style={[s.noMatchText, { color: colors.primary, fontFamily: fonts.bodySemibold }]}>
                       Show everything
                     </Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                shown.map((section) => (
-                  <View key={section.id} style={s.section}>
-                    <View style={[s.sectionHead, { borderBottomColor: colors.border }]}>
-                      <Text style={[s.sectionTitle, { color: colors.text, fontFamily: fonts.display }]}>
-                        {section.title}
-                      </Text>
+                sections.map((section) => (
+                  <View
+                    key={section.id}
+                    style={s.section}
+                    onLayout={(e) => {
+                      sectionTops.current[section.id] = e.nativeEvent.layout.y;
+                    }}
+                  >
+                    <View style={s.sectionHead}>
+                      <Text style={[s.sectionTitle, { color: colors.text, fontFamily: fonts.display }]}>{section.title}</Text>
                       <Text style={[s.sectionCount, { color: colors.textMuted, fontFamily: fonts.body }]}>
                         {plural(section.items.length, 'item')}
                       </Text>
                     </View>
-                    {section.items.map((item) => (
-                      <ItemCard
-                        key={item.name}
-                        sectionId={section.id}
-                        item={item}
-                        dietMarks={menu.dietMarks}
-                        quantities={quantities}
-                        onChange={setQuantity}
-                      />
-                    ))}
-                    {section.addOns?.length ? (
-                      <AddOns section={section} quantities={quantities} onChange={setQuantity} />
-                    ) : null}
+                    <View style={[s.sectionCard, { backgroundColor: colors.surface }, CardEdge]}>
+                      {section.items.map((item, index) => (
+                        <ItemRow
+                          key={item.name}
+                          sectionId={section.id}
+                          item={item}
+                          first={index === 0}
+                          dietMarks={menu.dietMarks}
+                          quantities={quantities}
+                          onChange={setQuantity}
+                          onChooseSize={() => setSizing({ sectionId: section.id, item })}
+                        />
+                      ))}
+                      {section.addOns?.length && !query ? (
+                        <AddOns section={section} quantities={quantities} onChange={setQuantity} />
+                      ) : null}
+                    </View>
                   </View>
                 ))
               )}
@@ -379,8 +478,12 @@ export default function CafeMenuScreen() {
             <BottomActionBar flexible style={s.bar}>
               <View style={s.barRow}>
                 <View style={s.barText}>
-                  <Text style={[s.barLabel, { color: colors.textMuted, fontFamily: fonts.body }]}>Your order</Text>
                   <Text style={[s.barSummary, { color: colors.text, fontFamily: fonts.bodySemibold }]}>{summary}</Text>
+                  {gstRateBps > 0 ? (
+                    <Text style={[s.barLabel, { color: colors.textMuted, fontFamily: fonts.body }]}>
+                      + {formatGstRate(gstRateBps)} GST
+                    </Text>
+                  ) : null}
                 </View>
                 <TouchableOpacity
                   onPress={openCheckout}
@@ -389,12 +492,21 @@ export default function CafeMenuScreen() {
                   style={[s.reviewBtn, { backgroundColor: colors.primary }]}
                 >
                   <Text style={[s.reviewText, { color: colors.textOnPrimary, fontFamily: fonts.bodySemibold }]}>
-                    Review & send
+                    View order
                   </Text>
+                  <Ionicons name="arrow-forward" size={16} color={colors.textOnPrimary} />
                 </TouchableOpacity>
               </View>
             </BottomActionBar>
           ) : null}
+
+          <SizeSheet
+            choice={sizing}
+            dietMarks={menu.dietMarks}
+            quantities={quantities}
+            onChange={setQuantity}
+            onClose={() => setSizing(null)}
+          />
 
           <CheckoutSheet
             visible={checkoutOpen}
@@ -405,7 +517,7 @@ export default function CafeMenuScreen() {
             onQuantity={setQuantity}
             onClear={clearCart}
             details={details}
-            onDetails={(patch) => setDetails((current) => ({ ...current, ...patch }))}
+            onDetails={(patch) => setDetails((existing) => ({ ...existing, ...patch }))}
             hours={menu.outlet.hours}
             pickupAddress={menu.outlet.addressText}
             openedAt={openedAt}
@@ -454,8 +566,8 @@ function QtyStepper({ label, quantity, onChange }: { label: string; quantity: nu
         accessibilityLabel={`Add ${label}`}
         style={[s.addBtn, { backgroundColor: colors.surface, borderColor: colors.primary }]}
       >
-        <Ionicons name="add" size={15} color={colors.primary} />
-        <Text style={[s.addText, { color: colors.primary, fontFamily: fonts.bodySemibold }]}>Add</Text>
+        <Text style={[s.addText, { color: colors.primary, fontFamily: fonts.bodyBold }]}>ADD</Text>
+        <Ionicons name="add" size={14} color={colors.primary} />
       </TouchableOpacity>
     );
   }
@@ -488,54 +600,87 @@ function QtyStepper({ label, quantity, onChange }: { label: string; quantity: nu
   );
 }
 
-function ItemCard({
+function ItemRow({
   sectionId,
   item,
+  first,
   dietMarks,
   quantities,
   onChange,
+  onChooseSize,
 }: {
   sectionId: string;
   item: CafeItem;
+  first: boolean;
   dietMarks: DietMarks;
   quantities: Record<string, number>;
   onChange: SetQuantity;
+  onChooseSize: () => void;
 }) {
   const { colors, fonts } = useTheme();
+  const orderables = itemOrderables(sectionId, item);
+  const sized = orderables.length > 1;
+  const inCart = orderables.reduce((sum, orderable) => sum + (quantities[orderable.key] ?? 0), 0);
+  const prices = orderables.flatMap((orderable) => (orderable.unitPrice === null ? [] : [orderable.unitPrice]));
+  const price = prices.length === 0 ? 'MRP' : sized ? `from ${rupees(Math.min(...prices))}` : rupees(prices[0]);
   const nutrition = [item.kcal && `${item.kcal} kcal`, item.proteinG && `${item.proteinG} g protein`]
     .filter(Boolean)
     .join(' · ');
 
   return (
-    <View style={[s.card, { backgroundColor: colors.surface }, CardEdge]}>
-      <View style={s.nameRow}>
-        <Text style={[s.itemName, { color: colors.text, fontFamily: fonts.bodySemibold }]}>{item.name}</Text>
-        {item.marks?.map((mark) => <MarkBadge key={mark} mark={mark} dietMarks={dietMarks} />)}
+    <View style={[s.itemRow, !first && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
+      <View style={s.itemInfo}>
+        <View style={s.nameRow}>
+          <Text style={[s.itemName, { color: colors.text, fontFamily: fonts.bodySemibold }]}>{item.name}</Text>
+          {item.marks?.map((mark) => <MarkBadge key={mark} mark={mark} dietMarks={dietMarks} />)}
+        </View>
+        <Text style={[s.price, { color: colors.text, fontFamily: fonts.bodySemibold }]}>
+          {price}
+          {sized ? (
+            <Text style={{ color: colors.textMuted, fontFamily: fonts.body }}> · {orderables.length} sizes</Text>
+          ) : null}
+        </Text>
+        {nutrition ? (
+          <Text style={[s.nutrition, { color: colors.primary, fontFamily: fonts.bodyMedium }]}>{nutrition}</Text>
+        ) : null}
+        {item.ingredients ? (
+          <Text style={[s.ingredients, { color: colors.textMuted, fontFamily: fonts.body }]} numberOfLines={2}>
+            {item.ingredients}
+          </Text>
+        ) : null}
       </View>
-      {nutrition ? (
-        <Text style={[s.nutrition, { color: colors.primary, fontFamily: fonts.bodyMedium }]}>{nutrition}</Text>
-      ) : null}
-      {item.ingredients ? (
-        <Text style={[s.ingredients, { color: colors.textMuted, fontFamily: fonts.body }]}>{item.ingredients}</Text>
-      ) : null}
-      <View style={s.priceRows}>
-        {itemOrderables(sectionId, item).map((orderable) => (
-          <View key={orderable.key} style={s.priceRow}>
-            <View style={s.priceWrap}>
-              {orderable.variant ? (
-                <Text style={[s.variant, { color: colors.textMuted, fontFamily: fonts.body }]}>{orderable.variant}</Text>
-              ) : null}
-              <Text style={[s.price, { color: colors.text, fontFamily: fonts.bodySemibold }]}>
-                {orderable.unitPrice === null ? 'MRP' : rupees(orderable.unitPrice)}
+      <View style={s.itemAction}>
+        {sized ? (
+          <>
+            <TouchableOpacity
+              onPress={onChooseSize}
+              activeOpacity={0.8}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel={`Choose a size of ${item.name}`}
+              style={[
+                s.addBtn,
+                inCart > 0
+                  ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                  : { backgroundColor: colors.surface, borderColor: colors.primary },
+              ]}
+            >
+              <Text
+                style={[s.addText, { color: inCart > 0 ? colors.textOnPrimary : colors.primary, fontFamily: fonts.bodyBold }]}
+              >
+                {inCart > 0 ? `${inCart} ADDED` : 'ADD'}
               </Text>
-            </View>
-            <QtyStepper
-              label={orderable.name}
-              quantity={quantities[orderable.key] ?? 0}
-              onChange={(quantity) => onChange(orderable, quantity)}
-            />
-          </View>
-        ))}
+              <Ionicons name="chevron-down" size={13} color={inCart > 0 ? colors.textOnPrimary : colors.primary} />
+            </TouchableOpacity>
+            <Text style={[s.actionHint, { color: colors.textMuted, fontFamily: fonts.body }]}>Choose size</Text>
+          </>
+        ) : (
+          <QtyStepper
+            label={orderables[0].name}
+            quantity={quantities[orderables[0].key] ?? 0}
+            onChange={(quantity) => onChange(orderables[0], quantity)}
+          />
+        )}
       </View>
     </View>
   );
@@ -553,15 +698,15 @@ function AddOns({
   const { colors, fonts } = useTheme();
   return (
     <View style={[s.addOns, { backgroundColor: colors.primaryTint }]}>
-      <Text style={[s.addOnsTitle, { color: colors.onPrimaryBg, fontFamily: fonts.bodySemibold }]}>Add on</Text>
+      <Text style={[s.addOnsTitle, { color: colors.onPrimaryBg, fontFamily: fonts.bodySemibold }]}>
+        ADD-ONS FOR {section.title.toUpperCase()}
+      </Text>
       {(section.addOns ?? []).map((addOn) => {
         const orderable = addOnOrderable(section, addOn);
         return (
-          <View key={orderable.key} style={[s.addOnRow, { backgroundColor: colors.surface }]}>
-            <Text style={[s.addOnName, { color: colors.text, fontFamily: fonts.body }]}>
-              {addOn.name}{' '}
-              <Text style={{ color: colors.primary, fontFamily: fonts.bodySemibold }}>{rupees(addOn.price)}</Text>
-            </Text>
+          <View key={orderable.key} style={s.addOnRow}>
+            <Text style={[s.addOnName, { color: colors.text, fontFamily: fonts.body }]}>{addOn.name}</Text>
+            <Text style={[s.addOnPrice, { color: colors.text, fontFamily: fonts.bodySemibold }]}>{rupees(addOn.price)}</Text>
             <QtyStepper
               label={orderable.name}
               quantity={quantities[orderable.key] ?? 0}
@@ -571,6 +716,65 @@ function AddOns({
         );
       })}
     </View>
+  );
+}
+
+/** Picks the size of an item sold in sizes before it goes into the order. */
+function SizeSheet({
+  choice,
+  dietMarks,
+  quantities,
+  onChange,
+  onClose,
+}: {
+  choice: { sectionId: string; item: CafeItem } | null;
+  dietMarks: DietMarks;
+  quantities: Record<string, number>;
+  onChange: SetQuantity;
+  onClose: () => void;
+}) {
+  const { colors, fonts } = useTheme();
+  const insets = useSafeAreaInsets();
+  const orderables = choice ? itemOrderables(choice.sectionId, choice.item) : [];
+
+  return (
+    <Modal visible={!!choice} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={s.backdrop} onPress={onClose} accessibilityLabel="Close" />
+      {choice ? (
+        <View style={[s.sizeSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + Spacing[4] }]}>
+          <View style={[s.grabber, { backgroundColor: colors.border }]} />
+          <View style={s.nameRow}>
+            <Text style={[s.sizeTitle, { color: colors.text, fontFamily: fonts.display }]}>{choice.item.name}</Text>
+            {choice.item.marks?.map((mark) => <MarkBadge key={mark} mark={mark} dietMarks={dietMarks} />)}
+          </View>
+          {choice.item.ingredients ? (
+            <Text style={[s.ingredients, { color: colors.textMuted, fontFamily: fonts.body }]}>{choice.item.ingredients}</Text>
+          ) : null}
+          <Text style={[s.sizeLabel, { color: colors.textMuted, fontFamily: fonts.bodySemibold }]}>CHOOSE A SIZE</Text>
+          {orderables.map((orderable) => (
+            <View key={orderable.key} style={[s.sizeRow, { borderColor: colors.border }]}>
+              <Text style={[s.sizeName, { color: colors.text, fontFamily: fonts.bodyMedium }]}>{orderable.variant}</Text>
+              <Text style={[s.sizePrice, { color: colors.text, fontFamily: fonts.bodySemibold }]}>
+                {orderable.unitPrice === null ? 'MRP' : rupees(orderable.unitPrice)}
+              </Text>
+              <QtyStepper
+                label={orderable.name}
+                quantity={quantities[orderable.key] ?? 0}
+                onChange={(quantity) => onChange(orderable, quantity)}
+              />
+            </View>
+          ))}
+          <TouchableOpacity
+            onPress={onClose}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            style={[s.doneBtn, { backgroundColor: colors.primary }]}
+          >
+            <Text style={[s.doneText, { color: colors.textOnPrimary, fontFamily: fonts.bodySemibold }]}>Done</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+    </Modal>
   );
 }
 
@@ -617,16 +821,18 @@ function Field({
   label,
   error,
   onLayout,
+  style,
   children,
 }: {
   label: string;
   error?: string;
   onLayout?: (e: LayoutChangeEvent) => void;
+  style?: ViewStyle;
   children: React.ReactNode;
 }) {
   const { colors, fonts } = useTheme();
   return (
-    <View onLayout={onLayout} style={s.field}>
+    <View onLayout={onLayout} style={[s.field, style]}>
       <Text style={[s.fieldLabel, { color: error ? colors.error : colors.textMuted, fontFamily: fonts.bodyMedium }]}>
         {label}
       </Text>
@@ -948,36 +1154,44 @@ function CheckoutSheet({
               <Text style={[s.clearText, { color: colors.textMuted, fontFamily: fonts.bodyMedium }]}>Clear cart</Text>
             </TouchableOpacity>
 
-            <Field label="Name" error={errors.name} onLayout={trackY('name')}>
-              <TextInput
-                ref={nameRef}
-                value={details.name}
-                onChangeText={(name) => update({ name })}
-                placeholder="Your name"
-                placeholderTextColor={colors.textMuted}
-                autoComplete="name"
-                textContentType="name"
-                autoCapitalize="words"
-                returnKeyType="next"
-                onSubmitEditing={() => phoneRef.current?.focus()}
-                submitBehavior="submit"
-                style={[inputStyle, borderFor('name')]}
-              />
-            </Field>
+            <View
+              style={s.pairRow}
+              onLayout={(e) => {
+                trackY('name')(e);
+                trackY('phone')(e);
+              }}
+            >
+              <Field label="Name" error={errors.name} style={s.half}>
+                <TextInput
+                  ref={nameRef}
+                  value={details.name}
+                  onChangeText={(name) => update({ name })}
+                  placeholder="Your name"
+                  placeholderTextColor={colors.textMuted}
+                  autoComplete="name"
+                  textContentType="name"
+                  autoCapitalize="words"
+                  returnKeyType="next"
+                  onSubmitEditing={() => phoneRef.current?.focus()}
+                  submitBehavior="submit"
+                  style={[inputStyle, borderFor('name')]}
+                />
+              </Field>
 
-            <Field label="Mobile number" error={errors.phone} onLayout={trackY('phone')}>
-              <TextInput
-                ref={phoneRef}
-                value={details.phone}
-                onChangeText={(phone) => update({ phone })}
-                placeholder="98765 43210"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="phone-pad"
-                autoComplete="tel"
-                textContentType="telephoneNumber"
-                style={[inputStyle, borderFor('phone')]}
-              />
-            </Field>
+              <Field label="Mobile" error={errors.phone} style={s.half}>
+                <TextInput
+                  ref={phoneRef}
+                  value={details.phone}
+                  onChangeText={(phone) => update({ phone })}
+                  placeholder="98765 43210"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                  textContentType="telephoneNumber"
+                  style={[inputStyle, borderFor('phone')]}
+                />
+              </Field>
+            </View>
 
             <Field label="Delivery or pickup">
               <View style={s.choiceRow}>
@@ -1144,30 +1358,54 @@ const s = StyleSheet.create({
   root: { flex: 1 },
   skeleton: { gap: Spacing[3], paddingHorizontal: Spacing[5], paddingTop: Spacing[3] },
 
-  intro: { paddingHorizontal: Spacing[5], paddingBottom: Spacing[3], gap: Spacing[2.5] },
-  introText: { fontSize: FontSize.sm, lineHeight: FontSize.sm * LineHeight.normal },
-  legend: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: Spacing[3], rowGap: 6 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  legendText: { fontSize: FontSize.xs },
+  top: { paddingHorizontal: Spacing[5], paddingBottom: Spacing[3], gap: Spacing[3] },
+  store: { borderRadius: Radius.lg, padding: Spacing[3.5], gap: 6 },
+  storeHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: Radius.full,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: FontSize.xs },
+  storeDetail: { fontSize: FontSize.xs },
+  storeName: { fontSize: FontSize.lg },
+  storeFacts: { flexDirection: 'row', flexWrap: 'wrap', columnGap: Spacing[3], rowGap: 4 },
+  storeFact: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  storeFactText: { fontSize: FontSize.xs },
 
-  filters: { paddingVertical: Spacing[2.5], gap: Spacing[2], borderBottomWidth: StyleSheet.hairlineWidth },
-  chipRow: { paddingHorizontal: Spacing[5], gap: 6 },
-  chip: { paddingHorizontal: 13, paddingVertical: 7, borderRadius: Radius.full, borderWidth: 1 },
-  chipText: { fontSize: FontSize.sm },
-  dietRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingHorizontal: Spacing[5] },
-  dietLabel: { fontSize: FontSize.xs, marginRight: 2 },
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[2],
+    height: 44,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    paddingHorizontal: Spacing[3.5],
+  },
+  searchInput: { flex: 1, fontSize: FontSize.sm, paddingVertical: 0 },
+  dietRow: { gap: 6 },
   dietChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 10,
+    gap: 5,
+    paddingLeft: 5,
+    paddingRight: 10,
     paddingVertical: 4,
     borderRadius: Radius.full,
     borderWidth: 1,
   },
   dietChipText: { fontSize: FontSize.xs },
 
-  list: { paddingHorizontal: Spacing[5], paddingTop: Spacing[4], gap: Spacing[6] },
+  nav: { paddingVertical: Spacing[2.5], borderBottomWidth: StyleSheet.hairlineWidth },
+  tabRow: { paddingHorizontal: Spacing[5], gap: 6 },
+  tab: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: Radius.full, borderWidth: 1 },
+  tabText: { fontSize: FontSize.sm },
+
+  list: { paddingHorizontal: Spacing[5], paddingTop: Spacing[4], gap: Spacing[5] },
   noMatch: {
     alignItems: 'center',
     gap: Spacing[2],
@@ -1178,67 +1416,95 @@ const s = StyleSheet.create({
   },
   noMatchText: { fontSize: FontSize.sm, textAlign: 'center' },
 
-  section: { gap: Spacing[2.5] },
-  sectionHead: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    gap: Spacing[3],
-    paddingBottom: Spacing[2],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
+  section: { gap: Spacing[2] },
+  sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: Spacing[3] },
   sectionTitle: { fontSize: FontSize.xl },
   sectionCount: { fontSize: FontSize.xs },
+  sectionCard: { borderRadius: Radius.lg, overflow: 'hidden' },
 
-  card: { borderRadius: Radius.lg, padding: Spacing[3.5], gap: 4 },
+  itemRow: { flexDirection: 'row', gap: Spacing[3], paddingHorizontal: Spacing[3.5], paddingVertical: Spacing[3.5] },
+  itemInfo: { flex: 1, gap: 3 },
   nameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
-  itemName: { flexShrink: 1, fontSize: FontSize.md },
-  badge: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontSize: 10, lineHeight: 12 },
+  itemName: { flexShrink: 1, fontSize: FontSize.base },
+  badge: { width: 17, height: 17, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { fontSize: 9.5, lineHeight: 12 },
+  price: { fontSize: FontSize.sm },
   nutrition: { fontSize: FontSize.xs },
-  ingredients: { fontSize: FontSize.sm, lineHeight: FontSize.sm * LineHeight.snug },
-  priceRows: { gap: 6, marginTop: Spacing[2] },
-  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing[2] },
-  priceWrap: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  variant: { fontSize: FontSize.xs },
-  price: { fontSize: FontSize.md },
+  ingredients: { fontSize: FontSize.xs, lineHeight: FontSize.xs * LineHeight.normal },
+  itemAction: { alignItems: 'center', gap: 4, paddingTop: 2 },
+  actionHint: { fontSize: 10 },
 
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 3,
-    height: 32,
+    minWidth: 86,
+    height: 34,
     paddingHorizontal: 12,
-    borderRadius: Radius.full,
-    borderWidth: 1,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
   },
-  addText: { fontSize: FontSize.sm },
-  stepper: { flexDirection: 'row', alignItems: 'center', height: 32, borderRadius: Radius.full },
-  stepBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  stepQty: { minWidth: 18, textAlign: 'center', fontSize: FontSize.sm },
-  dimmed: { opacity: 0.4 },
-
-  addOns: { borderRadius: Radius.md, padding: Spacing[3], gap: Spacing[2] },
-  addOnsTitle: { fontSize: FontSize.sm },
-  addOnRow: {
+  addText: { fontSize: FontSize.sm, letterSpacing: 0.4 },
+  stepper: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: Spacing[2],
-    borderRadius: Radius.sm,
-    paddingVertical: 6,
-    paddingLeft: Spacing[3],
-    paddingRight: 6,
+    minWidth: 86,
+    height: 34,
+    borderRadius: Radius.md,
   },
-  addOnName: { flexShrink: 1, fontSize: FontSize.sm },
+  stepBtn: { width: 30, height: 34, alignItems: 'center', justifyContent: 'center' },
+  stepQty: { minWidth: 18, textAlign: 'center', fontSize: FontSize.sm },
+  dimmed: { opacity: 0.4 },
+
+  addOns: { margin: Spacing[2.5], marginTop: 0, borderRadius: Radius.md, padding: Spacing[3], gap: Spacing[2] },
+  addOnsTitle: { fontSize: 10.5, letterSpacing: 0.8 },
+  addOnRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
+  addOnName: { flex: 1, fontSize: FontSize.sm },
+  addOnPrice: { fontSize: FontSize.sm },
 
   bar: { paddingTop: Spacing[3] },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },
   barText: { flex: 1 },
   barLabel: { fontSize: FontSize.xs },
   barSummary: { fontSize: FontSize.base },
-  reviewBtn: { height: 42, paddingHorizontal: Spacing[5], borderRadius: Radius.full, justifyContent: 'center' },
+  reviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 44,
+    paddingHorizontal: Spacing[5],
+    borderRadius: Radius.full,
+  },
   reviewText: { fontSize: FontSize.sm },
+
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  sizeSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+    paddingHorizontal: Spacing[5],
+    gap: Spacing[2],
+  },
+  sizeTitle: { fontSize: FontSize.xl, flexShrink: 1 },
+  sizeLabel: { fontSize: 11, letterSpacing: 0.8, marginTop: Spacing[2] },
+  sizeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[3],
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing[3],
+    paddingVertical: Spacing[2.5],
+  },
+  sizeName: { flex: 1, fontSize: FontSize.base },
+  sizePrice: { fontSize: FontSize.base },
+  doneBtn: { height: 46, borderRadius: Radius.full, alignItems: 'center', justifyContent: 'center', marginTop: Spacing[2] },
+  doneText: { fontSize: FontSize.base },
 
   sheet: { flex: 1 },
   grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, marginTop: Spacing[2] },
@@ -1275,6 +1541,8 @@ const s = StyleSheet.create({
   clearText: { fontSize: FontSize.xs, textDecorationLine: 'underline' },
 
   field: { gap: 6 },
+  pairRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing[3] },
+  half: { flex: 1 },
   fieldLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 },
   fieldError: { fontSize: FontSize.xs },
   input: { minHeight: 48, borderRadius: Radius.md, borderWidth: 1, paddingHorizontal: 12, fontSize: FontSize.base },
