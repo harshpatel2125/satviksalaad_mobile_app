@@ -5,9 +5,11 @@ import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 
-import { FontSize, Radius } from '@/constants/theme';
+import { Brand, FontSize, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { optimizedImageSource } from '@/lib/image-url';
+
+export const PHOTO_COMING_SOON = 'Photo coming soon. Our team is working on it.';
 
 interface MealCardProps {
   meal: {
@@ -48,6 +50,9 @@ export function MealCard({ meal, showCalories = true, showProtein = true, onPres
         locations={[0, 0.32, 0.46, 0.57, 0.67, 0.78, 0.90, 1]}
         style={StyleSheet.absoluteFillObject}
       />
+      {!meal.imageUrl && (
+        <Text style={[s.photoNote, { fontFamily: fonts.body }]}>{PHOTO_COMING_SOON}</Text>
+      )}
       <View style={s.info}>
         <Text style={[s.name, { fontFamily: fonts.display }]} numberOfLines={2}>
           {meal.name}
@@ -79,6 +84,16 @@ export function MealCard({ meal, showCalories = true, showProtein = true, onPres
 
 const s = StyleSheet.create({
   wrap: { height: 210, borderRadius: Radius["2xl"], overflow: "hidden" },
+  photoNote: {
+    position: "absolute",
+    top: 12,
+    left: 16,
+    right: 16,
+    textAlign: "center",
+    fontSize: FontSize.xs,
+    color: Brand.forest,
+    opacity: 0.7,
+  },
   info: {
     position: "absolute",
     bottom: 0,

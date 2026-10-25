@@ -19,6 +19,7 @@ import { Brand, CardEdge, FontSize, FontWeight, Radius, Spacing } from '@/consta
 import { useAuth } from '@/context/auth';
 import { useTheme } from '@/hooks/use-theme';
 import { optimizedImageSource } from '@/lib/image-url';
+import { PHOTO_COMING_SOON } from '@/components/screens/menu/meal-card';
 import { readHomeCache } from '@/lib/home-cache';
 import type { HomeCriticalResponse, SubscriptionsResponse } from '@/types/api';
 
@@ -155,6 +156,11 @@ export default function MealDetailScreen() {
 
         {/* ── Content ── */}
         <View style={styles.content}>
+          {!imageUrl && (
+            <Text style={[styles.photoNote, { color: colors.textMuted, fontFamily: fonts.body }]}>
+              {PHOTO_COMING_SOON}
+            </Text>
+          )}
 
           {/* Category pill */}
           <View style={styles.pillsRow}>
@@ -336,6 +342,7 @@ const styles = StyleSheet.create({
     gap: Spacing[3],
   },
 
+  photoNote: { fontSize: FontSize.xs },
   pillsRow:  { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   pill:      { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.full },
   pillText:  { fontSize: FontSize.xs },
