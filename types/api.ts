@@ -192,6 +192,8 @@ export interface SubscriptionPreviewResponse {
   trial_available: boolean;
   /** Set when the order would use the customer's own days, time and address instead of the ones sent. */
   your_schedule: SharedSchedule | null;
+  /** The price before GST this account checks out at in place of the plan's; null for everyone else. */
+  test_price_paise: number | null;
 }
 
 // ─── Delivery Schedules ───────────────────────────────────────────────────────

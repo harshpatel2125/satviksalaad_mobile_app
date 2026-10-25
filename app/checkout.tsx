@@ -195,11 +195,11 @@ export default function CheckoutScreen() {
     }, [userId]),
   );
 
-  const baseTotalPaise = plan?.price_paise ?? 0;
+  const baseTotalPaise = preview?.test_price_paise ?? plan?.price_paise ?? 0;
   const discount = appliedCoupon?.discountPaise ?? 0;
   const gst = addGst(Math.max(0, baseTotalPaise - discount), gstRateBps);
   const finalPaise = gst.totalPaise;
-  const baseRs = Math.round(baseTotalPaise / 100);
+  const baseRs = rupeesFromPaise(baseTotalPaise).slice(1);
   const undiscountedRs = rupeesFromPaise(addGst(baseTotalPaise, gstRateBps).totalPaise).slice(1);
   const discountRs = Math.round(discount / 100);
   const finalRs = rupeesFromPaise(finalPaise).slice(1);
@@ -1143,7 +1143,7 @@ export default function CheckoutScreen() {
               <>
                 <PriceRow
                   label={`${plan?.name ?? "Plan"} (${countOf(plan?.bowls_count ?? 0, plan?.unit)})`}
-                  value={`₹${Math.round((plan?.price_paise ?? 0) / 100)}`}
+                  value={rupeesFromPaise(baseTotalPaise)}
                   colors={colors}
                   fonts={fonts}
                 />
