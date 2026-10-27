@@ -74,7 +74,7 @@ export default function PoliciesScreen() {
 
   const policies = buildPolicies(data?.data ?? null);
   const supportEmail = data?.data.supportEmail ?? null;
-  const legalName = data?.data.legalName ?? 'Infynix Labs';
+  const legalName = data?.data.legalName ?? 'Bellaviso HealthTech LLP';
   const registrations = [
     data?.data.gstin ? `GSTIN ${data.data.gstin}` : null,
     data?.data.fssai ? `FSSAI Lic. No. ${data.data.fssai}` : null,
