@@ -81,7 +81,7 @@ export function useSupportContact() {
     swiggyUrl: settings?.swiggyUrl?.trim() || null,
     zomatoUrl: settings?.zomatoUrl?.trim() || null,
     legal: {
-      name: settings?.legalName ?? 'Bellaviso HealthTech LLP',
+      name: settings?.legalName ?? 'Infynix Labs',
       gstin: settings?.gstin ?? null,
       fssai: settings?.fssai ?? null,
     },
