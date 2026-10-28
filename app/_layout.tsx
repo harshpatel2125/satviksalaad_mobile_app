@@ -384,7 +384,7 @@ function RootLayoutInner() {
       <View
         style={[
           StyleSheet.absoluteFill,
-          { backgroundColor: isDark ? "#101814" : "#FBFBF9" },
+          { backgroundColor: isDark ? "#0B0B0B" : "#FBFBF9" },
         ]}
       />
     );
@@ -426,6 +426,8 @@ function RootLayoutInner() {
         <Stack.Screen name="support" />
         <Stack.Screen name="cafe-menu" />
         <Stack.Screen name="diet-consultation" />
+        <Stack.Screen name="goals" />
+        <Stack.Screen name="goals-setup" />
         <Stack.Screen name="plans" />
         <Stack.Screen name="invoice-detail" />
         <Stack.Screen name="skip-delivery" options={{ animation: "none" }} />
@@ -448,7 +450,7 @@ function RootLayoutInner() {
           style={[
             StyleSheet.absoluteFill,
             {
-              backgroundColor: isDark ? "#101814" : "#FBFBF9",
+              backgroundColor: isDark ? "#0B0B0B" : "#FBFBF9",
               opacity: overlayOpacity,
             },
           ]}

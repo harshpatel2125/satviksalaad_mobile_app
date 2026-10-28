@@ -17,20 +17,11 @@ import { column } from '@/constants/layout';
 import { useAuth } from '@/context/auth';
 import { useThemePreference } from '@/context/theme-preference';
 import { useTheme } from '@/hooks/use-theme';
+import { getGreeting } from '@/lib/greeting';
 
 const IS_IOS = Platform.OS === 'ios';
 // The mark's dark green is lost on the dark header, so there it takes the cream of logo-cream.png.
 const DARK_MARK_TINT = '#F8F6E2';
-
-function getGreeting(): string {
-  const h = parseInt(
-    new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'Asia/Kolkata' }),
-    10,
-  );
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
-}
 
 interface HomeHeaderProps {
   scrollY: SharedValue<number>;

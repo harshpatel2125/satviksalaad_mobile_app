@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  AppState,
   RefreshControl,
   StatusBar,
   StyleSheet,
@@ -35,6 +36,8 @@ import { column } from '@/constants/layout';
 import { homeApi, notificationsApi, plansApi, subscriptionsApi } from '@/lib/api';
 import { useTrialPopupTrigger } from '@/hooks/use-trial-popup-trigger';
 import { TrialBowlSheet } from '@/components/screens/home/trial-bowl-sheet';
+import { GoalsSheet } from '@/components/screens/goals/goals-sheet';
+import { goalsPopupDue, markGoalsPopupShown } from '@/lib/daily-goals';
 import { TodayMenu } from '@/components/screens/menu/today-menu';
 import { optimizedImageUrls } from '@/lib/image-url';
 import { CACHE_TTL, homeStaticPersister } from '@/lib/query-client';
@@ -65,10 +68,13 @@ function addDays(date: string, n: number): string {
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
+/** Lets Home settle before the goals sheet slides up. */
+const GOALS_POPUP_DELAY_MS = 800;
+
 export default function HomeScreen() {
   const { colors, fonts, isDark } = useTheme();
   const router = useRouter();
-  const { session } = useAuth();
+  const { session, profile, cachedName } = useAuth();
   const slots = useSlots();
 
   const userId = session?.user?.id ?? null;
@@ -231,7 +237,25 @@ export default function HomeScreen() {
     scrollY.value = event.contentOffset.y;
   });
 
-  const { show: showTrialSheet, dismiss: dismissTrialSheet } = useTrialPopupTrigger(scrollY, trialOffered && !!trialPlan);
+  const [goalsOpen, setGoalsOpen] = useState(false);
+  const { show: showTrialSheet, dismiss: dismissTrialSheet } = useTrialPopupTrigger(scrollY, trialOffered && !!trialPlan && !goalsOpen);
+
+  // Once a day, on the first open or when the app comes back on a new day; never over the trial sheet.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const check = () => {
+      if (showTrialSheet || !goalsPopupDue()) return;
+      timer = setTimeout(() => setGoalsOpen(true), GOALS_POPUP_DELAY_MS);
+    };
+    check();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') check();
+    });
+    return () => {
+      clearTimeout(timer);
+      sub.remove();
+    };
+  }, [showTrialSheet]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -402,6 +426,16 @@ export default function HomeScreen() {
           onSeeAll={() => router.navigate("/(tabs)/videos")}
         />
       </Animated.ScrollView>
+
+      <GoalsSheet
+        visible={goalsOpen}
+        firstName={(profile?.full_name ?? cachedName)?.trim().split(' ')[0] ?? null}
+        onDismiss={() => {
+          // Counted once closed: Home can remount while it is open, and it should show again then.
+          markGoalsPopupShown();
+          setGoalsOpen(false);
+        }}
+      />
 
       {trialOffered && trialPlan && (
         <TrialBowlSheet

@@ -90,7 +90,7 @@
               "image": "./assets/logo/logo-cream.png",
               "imageWidth": 200,
               "resizeMode": "contain",
-              "backgroundColor": "#101814"
+              "backgroundColor": "#0B0B0B"
             }
           },
           "ios": {
@@ -102,7 +102,7 @@
               "image": "./assets/logo/logo-cream.png",
               "imageWidth": 275,
               "resizeMode": "contain",
-              "backgroundColor": "#101814"
+              "backgroundColor": "#0B0B0B"
             }
           }
         }

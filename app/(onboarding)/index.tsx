@@ -45,7 +45,7 @@ const rf = (n: number) => Math.round(n * Math.min(W / 390, 1.35));
 const ILLUS_FLEX = H >= 1000 ? 64 : H < 800 ? Math.round(55 * 0.85) : H > 930 ? Math.round(55 * 0.83) : 55;
 const BODY_FLEX = 100 - ILLUS_FLEX;
 
-const ILLUS_GRADIENT = { light: ['#f0f6f2', '#e6f0e9'], dark: ['#1e2a24', '#17211c'] } as const;
+const ILLUS_GRADIENT = { light: ['#f0f6f2', '#e6f0e9'], dark: ['#1A1A1A', '#121212'] } as const;
 
 const SLIDES = [
   {
@@ -118,8 +118,8 @@ function SubscriptionArt({
           style={[
             artS.subCardBehind,
             {
-              backgroundColor: isDark ? '#27352e' : '#d5e5da',
-              borderColor: isDark ? '#313f38' : 'transparent',
+              backgroundColor: isDark ? '#202020' : '#d5e5da',
+              borderColor: isDark ? '#262626' : 'transparent',
               borderWidth: isDark ? 1 : 0,
             },
             behindStyle,
@@ -130,7 +130,7 @@ function SubscriptionArt({
             artS.subCard,
             {
               backgroundColor: colors.surface,
-              borderColor: isDark ? '#313f38' : '#e6f0e9',
+              borderColor: isDark ? '#262626' : '#e6f0e9',
             },
             cardStyle,
           ]}
@@ -619,7 +619,7 @@ export default function OnboardingScreen() {
                         {
                           backgroundColor: colors.primaryBg,
                           borderWidth: isDark ? 1 : 0,
-                          borderColor: isDark ? '#313f38' : 'transparent',
+                          borderColor: isDark ? '#262626' : 'transparent',
                         },
                       ]}
                     >

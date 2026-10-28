@@ -280,6 +280,11 @@ export default function ProfileScreen() {
 
           <SettingsSection title="Preferences">
             <MenuRow
+              icon="checkmark-done-outline"
+              label="Daily goals"
+              onPress={() => router.push("/goals")}
+            />
+            <MenuRow
               icon="calendar-outline"
               label="Delivery schedule"
               onPress={() => router.push("/(tabs)/deliveries")}

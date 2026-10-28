@@ -106,29 +106,30 @@ const light = {
 
 // ─── Dark theme ───────────────────────────────────────────────────────────────
 const dark = {
-  background: "#101814",
-  surface: "#17211C",
-  surface2: "#212C26",
+  background: "#0B0B0B",
+  surface: "#161616",
+  surface2: "#202020",
 
-  text: "#F4F4F0",
-  textSecondary: "#CBD1C6",
-  textMuted: "#A8A894",
-  textDisabled: "#5E6A62",
+  text: "#F5F5F5",
+  textSecondary: "#D4D4D4",
+  textMuted: "#A3A3A3",
+  textDisabled: "#5C5C5C",
   textOnPrimary: palette.white,
 
-  primary: "#34B268",
+  // Neutral greys; green only marks brand and state.
+  primary: "#3DBE73",
   primaryDark: palette.forest,
-  primaryBg: "#27352E",
-  primaryTint: "#1E2A24",
+  primaryBg: "#1F2A23",
+  primaryTint: "#18201B",
   onPrimaryBg: "#D4E9DB",
-  sageSoft: "#27352E",
+  sageSoft: "#1F2A23",
 
   accent: "#F4A825",
   accentBg: "#2E2410",
   onAccent: palette.onGold,
 
-  border: "#313F38",
-  borderLight: "#2A3631",
+  border: "#262626",
+  borderLight: "#1F1F1F",
 
   success: "#34C774",
   successBg: "#0A1F12",
@@ -144,13 +145,13 @@ const dark = {
   orange: "#FB923C",
   orangeBg: "#1A0C00",
 
-  tabBar: "#131C17",
-  tabBarBorder: "#313F38",
-  tabBarActive: "#34B268",
-  tabBarInactive: "#A8A894",
+  tabBar: "#111111",
+  tabBarBorder: "#262626",
+  tabBarActive: "#3DBE73",
+  tabBarInactive: "#8E8E8E",
 
-  skeleton: "#1C2620",
-  skeletonShimmer: "#25312A",
+  skeleton: "#1A1A1A",
+  skeletonShimmer: "#242424",
 };
 
 export const Colors = { light, dark } as const;

@@ -25,6 +25,7 @@ import { accountApi, appSettingsApi, notificationPreferencesApi, type NotifPrefs
 import { policyUrls } from '@/lib/policy-urls';
 import { CACHE_TTL } from "@/lib/query-client";
 import { clearPushToken, registerPushToken } from '@/lib/push-notifications';
+import { goalsPopupEnabled, setGoalsPopupEnabled } from '@/lib/daily-goals';
 import { deleteSharedFile, shareFileUri } from '@/lib/share-files';
 
 // ─── Toggle ───────────────────────────────────────────────────────────────────
@@ -210,6 +211,13 @@ const NOTIF_ROWS: SettingRowConfig[] = [
   { icon: 'mail-outline',           label: 'Email',              detail: 'Updates sent to your inbox',      rightType: 'toggle', toggleKey: 'notif_email' },
 ];
 
+const GOALS_ROW: SettingRowConfig = {
+  icon: 'checkmark-done-outline',
+  label: 'Daily goals on open',
+  detail: "Show today's goals once a day",
+  rightType: 'toggle',
+};
+
 const APPEARANCE_ROWS: SettingRowConfig[] = [
   {
     icon: "globe-outline",
@@ -229,6 +237,7 @@ export default function MSettings() {
   const insets = useSafeAreaInsets();
   const { themePreference } = useThemePreference();
   const { showAlert } = useAlert();
+  const [goalsPopup, setGoalsPopup] = useState(goalsPopupEnabled);
   const { signOut } = useAuth();
   const [showAppearance, setShowAppearance] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -394,6 +403,24 @@ export default function MSettings() {
         {/* Notifications */}
         <SectionHead label="Notifications" colors={colors} fonts={fonts} />
         <View style={styles.cardWrapper}>{renderCard(NOTIF_ROWS)}</View>
+
+        {/* Daily goals */}
+        <SectionHead label="Daily goals" colors={colors} fonts={fonts} />
+        <View style={styles.cardWrapper}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderWidth: 0 }, CardEdge]}>
+            <SettingRow
+              item={GOALS_ROW}
+              isFirst
+              toggleState={goalsPopup}
+              onToggle={() => {
+                setGoalsPopupEnabled(!goalsPopup);
+                setGoalsPopup(!goalsPopup);
+              }}
+              colors={colors}
+              fonts={fonts}
+            />
+          </View>
+        </View>
 
         {/* Appearance */}
         <SectionHead label="Appearance" colors={colors} fonts={fonts} />

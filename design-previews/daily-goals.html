@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Satvik Daily Goals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+  /* Page */
+  :root { --page: #ecebe6; --page-text: #1b1b19; --page-muted: #5d5d57; --panel: #fff; }
+  @media (prefers-color-scheme: dark) { :root:not([data-page="light"]) { --page: #232323; --page-text: #eee; --page-muted: #a7a7a7; --panel: #2c2c2c; } }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--page); color: var(--page-text); font-family: Figtree, system-ui, sans-serif; padding: 28px 16px 56px; }
+  h1 { font-family: "Young Serif", serif; font-weight: 400; font-size: 27px; text-align: center; }
+  .lead { text-align: center; color: var(--page-muted); margin: 6px auto 18px; font-size: 14.5px; max-width: 720px; line-height: 1.5; }
+  .switch { display: flex; justify-content: center; gap: 6px; margin-bottom: 26px; }
+  .switch button { font: 600 13px Figtree, sans-serif; padding: 8px 16px; border-radius: 999px; border: 1px solid #9995; background: transparent; color: var(--page-text); cursor: pointer; }
+  .switch button.on { background: #235C3B; color: #fff; border-color: #235C3B; }
+  .row { display: flex; gap: 30px; justify-content: center; flex-wrap: wrap; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .tag { font-weight: 700; font-size: 15px; }
+  .sub { font-size: 12.5px; color: var(--page-muted); text-align: center; max-width: 320px; }
+  .notes { max-width: 1060px; margin: 40px auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+  .note { background: var(--panel); border-radius: 16px; padding: 16px 18px; font-size: 13.5px; line-height: 1.55; }
+  .note h3 { font-family: "Young Serif", serif; font-weight: 400; font-size: 17px; margin-bottom: 6px; }
+  .note ul { padding-left: 18px; }
+
+  /* App themes: the app's own tokens */
+  .light { --bg:#FBFBF9; --surface:#FFFFFF; --surface2:#F4F4F0; --edge:#E5E8E2; --text:#12211A; --muted:#576B61; --primary:#235C3B; --soft:#E6F0E9; --tint:#F0F6F2; --gold:#EC9C13; --goldSoft:#FDF3DD; --water:#1A8BF5; --waterSoft:#D6ECFE; --tabbar:#FFFFFF; --tabborder:#DDE2DA; --inactive:#576B61; --ring:#E3EBE0; }
+  .dark  { --bg:#0B0B0B; --surface:#161616; --surface2:#202020; --edge:#262626; --text:#F5F5F5; --muted:#A3A3A3; --primary:#3DBE73; --soft:#1F2A23; --tint:#18201B; --gold:#F4A825; --goldSoft:#2E2410; --water:#60A5FA; --waterSoft:#0F1C2B; --tabbar:#111111; --tabborder:#262626; --inactive:#8E8E8E; --ring:#262626; }
+
+  /* Phone */
+  .phone { width: 340px; height: 736px; border-radius: 44px; padding: 10px; background: #000; box-shadow: 0 18px 40px rgba(0,0,0,.28); }
+  .screen { position: relative; height: 100%; border-radius: 35px; overflow: hidden; background: var(--bg); color: var(--text); }
+  .status { display: flex; justify-content: space-between; padding: 14px 26px 0; font-size: 13px; font-weight: 600; }
+  .scroll { padding: 8px 16px 92px; height: calc(100% - 30px); overflow: hidden; }
+  .serif { font-family: "Young Serif", serif; }
+  .muted { color: var(--muted); }
+  .card { background: var(--surface); border: 1px solid var(--edge); border-radius: 18px; padding: 14px; }
+  .label { color: var(--primary); font-size: 10.5px; letter-spacing: .9px; font-weight: 700; }
+  .h { font-family: "Young Serif", serif; font-size: 19px; }
+  .btn { background: var(--primary); color: #fff; border-radius: 999px; text-align: center; padding: 11px; font-weight: 600; font-size: 13.5px; }
+  .dark .btn { color: #0B0B0B; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; background: var(--soft); color: var(--primary); font-size: 11px; font-weight: 600; }
+
+  /* Home header */
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 6px 0 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .greet { font-size: 11.5px; color: var(--muted); }
+  .title { font-family: "Young Serif", serif; font-size: 19px; color: var(--primary); line-height: 1.1; }
+  .dark .title { color: var(--text); }
+  .bell { width: 36px; height: 36px; border-radius: 50%; background: var(--surface2); display: grid; place-items: center; }
+
+  /* Today card */
+  .today { display: flex; gap: 14px; align-items: center; }
+  .ring { width: 74px; height: 74px; flex: none; position: relative; }
+  .ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 15px; }
+  .streak { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--gold); background: var(--goldSoft); padding: 4px 9px; border-radius: 999px; margin-top: 6px; }
+  .goal { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--edge); }
+  .goal:first-of-type { border-top: 0; }
+  .check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--edge); flex: none; display: grid; place-items: center; }
+  .check.on { background: var(--primary); border-color: var(--primary); }
+  .goal .t { font-size: 13px; font-weight: 600; }
+  .goal .s { font-size: 11px; color: var(--muted); }
+  .goal .go { margin-left: auto; font-size: 11.5px; font-weight: 600; color: var(--primary); white-space: nowrap; }
+  .done .t { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--muted); }
+
+  /* Tip */
+  .tip { display: flex; gap: 11px; background: var(--tint); border-radius: 16px; padding: 12px 13px; margin-top: 10px; }
+  .tip .av { width: 34px; height: 34px; border-radius: 50%; background: #235C3B; color: #fff; display: grid; place-items: center; font-family: "Young Serif", serif; font-size: 13px; flex: none; }
+  .tip p { font-size: 12px; line-height: 1.45; }
+  .tip small { display: block; font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+
+  /* Timeline */
+  .tl { margin-top: 8px; }
+  .tl div { display: flex; gap: 10px; font-size: 12px; padding: 5px 0; align-items: center; }
+  .tl time { width: 54px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .tl i { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex: none; }
+  .tl .now i { box-shadow: 0 0 0 4px var(--soft); }
+  .tl .past { color: var(--muted); }
+  .tl .past i { background: var(--edge); }
+
+  /* Upsell */
+  .hero { background: #235C3B; border-radius: 18px; padding: 13px 14px; color: #fff; margin-top: 10px; display: flex; align-items: center; gap: 10px; }
+  .hero div { flex: 1; }
+  .hero b { font-family: "Young Serif", serif; font-weight: 400; font-size: 15px; display: block; }
+  .hero small { font-size: 11px; opacity: .85; }
+  .hero span { background: #fff; color: #143D27; border-radius: 999px; padding: 7px 11px; font-size: 11.5px; font-weight: 700; }
+
+  /* Existing Home (unchanged) behind the popup */
+  .sub-hero { background: #235C3B; border-radius: 20px; padding: 16px; color: #fff; }
+  .sub-hero .k { font-size: 10px; letter-spacing: .6px; opacity: .8; }
+  .sub-hero .hh { font-family: "Young Serif", serif; font-size: 19px; margin: 6px 0 3px; }
+  .sub-hero .d { font-size: 12.5px; opacity: .9; }
+  .sub-hero .b { margin-top: 12px; background: #fff; color: #143D27; border-radius: 999px; text-align: center; padding: 10px; font-weight: 600; font-size: 13.5px; }
+  .qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .qa { background: var(--surface); border: 1px solid var(--edge); border-radius: 16px; padding: 12px; }
+  .qa b { display: block; font-size: 12.5px; font-weight: 600; }
+  .qa i { font-style: normal; font-size: 10.5px; color: var(--muted); }
+
+  /* Popup sheet */
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 26px 26px 0 0; padding: 10px 18px 26px; box-shadow: 0 -8px 30px rgba(0,0,0,.18); }
+  .grab { width: 38px; height: 5px; border-radius: 3px; background: var(--edge); margin: 0 auto 12px; }
+  .close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--surface2); display: grid; place-items: center; cursor: pointer; }
+  .later { text-align: center; font-size: 13px; font-weight: 600; color: var(--muted); margin-top: 10px; }
+
+  /* Goals screen */
+  .top { display: flex; align-items: center; gap: 10px; padding: 6px 0 10px; }
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; margin-bottom: 12px; }
+  .week div { font-size: 10.5px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .week span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font-size: 11.5px; font-weight: 700; background: var(--surface2); color: var(--muted); }
+  .week .full span { background: var(--primary); color: #fff; }
+  .dark .week .full span { color: #0B0B0B; }
+  .week .part span { background: var(--soft); color: var(--primary); }
+  .week .rest span { background: var(--goldSoft); color: var(--gold); }
+  .week .today span { outline: 2px solid var(--primary); outline-offset: 2px; }
+  .water { display: flex; gap: 5px; margin: 9px 0 4px; }
+  .water svg { width: 25px; height: 32px; }
+  .section { font-size: 10.5px; letter-spacing: .9px; font-weight: 700; color: var(--muted); margin: 14px 2px 6px; }
+
+  /* Setup */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .opt { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 16px; padding: 11px; position: relative; }
+  .opt.on { border-color: var(--primary); background: var(--tint); }
+  .opt .ic { width: 30px; height: 30px; border-radius: 50%; background: var(--soft); display: grid; place-items: center; margin-bottom: 7px; }
+  .opt b { display: block; font-size: 12.5px; font-weight: 600; }
+  .opt small { font-size: 10.5px; color: var(--muted); }
+  .opt .tick { position: absolute; top: 10px; right: 10px; width: 18px; height: 18px; border-radius: 50%; background: var(--primary); display: grid; place-items: center; }
+  .remind { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; padding: 9px 2px; border-top: 1px solid var(--edge); }
+  .toggle { width: 38px; height: 22px; border-radius: 999px; background: var(--primary); position: relative; }
+  .toggle::after { content: ""; position: absolute; right: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+  .foot { font-size: 10px; color: var(--muted); text-align: center; margin-top: 9px; line-height: 1.4; }
+
+  /* Tab bar */
+  .tabbar { position: absolute; left: 0; right: 0; bottom: 0; height: 76px; background: var(--tabbar); border-top: 1px solid var(--tabborder); border-radius: 18px 18px 0 0; display: flex; justify-content: space-around; padding-top: 8px; }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10.5px; color: var(--inactive); font-weight: 600; }
+  .tab .pill { width: 50px; height: 28px; border-radius: 999px; display: grid; place-items: center; }
+  .tab.on { color: var(--primary); }
+  .tab.on .pill { background: var(--soft); }
+  svg { display: block; }
+</style>
+</head>
+<body>
+  <h1>Satvik Salaad — Daily goals</h1>
+  <p class="lead">Home stays as it is today. Once a day, when the app opens, a small goals sheet slides up: a few small goals, a habit tip from Divya and a link to the full list. Each goal leads to something Satvik offers (videos, menu, plans, diet consultation).</p>
+  <div class="switch"><button data-theme="light" class="on">Light</button><button data-theme="dark">Dark</button></div>
+
+  <div class="row" id="phones">
+
+    <!-- 1. Home, unchanged, with the goals sheet on open -->
+    <div class="col">
+      <div class="tag">1 · On app open: goals popup</div>
+      <div class="sub">Home stays exactly as it is. Once a day, on the first open, this sheet slides up. Close with ✕, by tapping outside or swiping down.</div>
+      <div class="phone"><div class="screen app light">
+        <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+        <div class="scroll">
+          <div class="header">
+            <div class="brand">
+              <svg width="34" height="34" viewBox="0 0 40 40"><circle cx="10" cy="11" r="3.2" fill="#7BAE3F"/><path d="M15 15c4-9 13-11 20-10-2 8-9 13-20 10z" fill="#7BAE3F"/><path d="M4 21h32c-1 7-7 11-16 11S5 28 4 21z" fill="var(--primary)"/><rect x="14" y="32" width="12" height="3" rx="1.5" fill="var(--primary)"/></svg>
+              <div><div class="greet">Good morning, Asha</div><div class="title">Satvik Salaad</div></div>
+            </div>
+            <div class="bell"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="1.8"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></div>
+          </div>
+          <div class="sub-hero">
+            <div class="k">YOUR SUBSCRIPTIONS</div>
+            <div class="hh">No subscription yet</div>
+            <div class="d">Fresh bowls on the days you choose, lunch or dinner.</div>
+            <div class="b">Choose a plan</div>
+          </div>
+          <div class="label" style="margin:14px 2px 8px">QUICK ACTIONS</div>
+          <div class="qa-grid">
+            <div class="qa"><b>Skip a day</b><i>Free, before the cutoff</i></div>
+            <div class="qa"><b>Choose a plan</b><i>Weekly or monthly</i></div>
+            <div class="qa"><b>Settings</b><i>App preferences</i></div>
+            <div class="qa"><b>Menu</b><i>See the menu</i></div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab on"><div class="pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="var(--primary)"><path d="M3 11 12 3l9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></div>Home</div>
+          <div class="tab"><div class="pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--inactive)" stroke-width="1.8"><path d="M5 19c0-8 6-14 15-15-1 9-7 15-15 15zM5 19l7-7"/></svg></div>Menu</div>
+          <div class="tab"><div class="pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--inactive)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></svg></div>Videos</div>
+          <div class="tab"><div class="pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--inactive)" stroke-width="1.8"><circle cx="6" cy="16" r="3.5"/><circle cx="18" cy="16" r="3.5"/><path d="m6 16 4-7h5l3 7M10 9 8 6H6"/></svg></div>Deliveries</div>
+          <div class="tab"><div class="pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--inactive)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg></div>Profile</div>
+        </div>
+
+        <!-- The popup -->
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <button class="close" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+          <div class="today">
+            <div class="ring">
+              <svg width="64" height="64" viewBox="0 0 74 74"><circle cx="37" cy="37" r="31" fill="none" stroke="var(--ring)" stroke-width="8"/><circle cx="37" cy="37" r="31" fill="none" stroke="var(--primary)" stroke-width="8" stroke-linecap="round" stroke-dasharray="194.8" stroke-dashoffset="155.8" transform="rotate(-90 37 37)"/></svg>
+              <b style="font-size:13px">1/5</b>
+            </div>
+            <div>
+              <div class="label">TODAY · SATURDAY</div>
+              <div class="h" style="font-size:18px">Good morning, Asha</div>
+              <div class="streak">🔥 6-day streak</div>
+            </div>
+          </div>
+          <div style="margin-top:6px">
+            <div class="goal done"><div class="check on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg></div><div><div class="t">Warm water after waking</div><div class="s">2 glasses</div></div></div>
+            <div class="goal"><div class="check"></div><div><div class="t">15 min yoga</div><div class="s">Before breakfast</div></div><div class="go">Play ›</div></div>
+            <div class="goal"><div class="check"></div><div><div class="t">A fresh salad for lunch</div><div class="s">Today: Smoky Paneer Salad</div></div><div class="go">Menu ›</div></div>
+          </div>
+          <div class="tip" style="margin-top:8px">
+            <div class="av">DA</div>
+            <div><p><b>Habit of the day:</b> Eat dinner 2–3 hours before bed.</p><small>Divya Agrawal · clinical dietitian</small></div>
+          </div>
+          <div class="btn" style="margin-top:12px">See all of today's goals</div>
+          <div class="later">Not today</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 2. Today screen -->
+    <div class="col">
+      <div class="tag">2 · Today's goals</div>
+      <div class="sub">Tap to tick. The week shows progress; a missed day doesn't reset anything.</div>
+      <div class="phone"><div class="screen app light">
+        <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+        <div class="scroll">
+          <div class="top">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2"><path d="m15 5-7 7 7 7"/></svg>
+            <div class="serif" style="font-size:21px">Today's goals</div>
+            <div style="margin-left:auto" class="chip">Edit</div>
+          </div>
+          <div class="week">
+            <div class="full">M<span>✓</span></div><div class="full">T<span>✓</span></div><div class="rest">W<span>R</span></div><div class="full">T<span>✓</span></div><div class="part">F<span>3</span></div><div class="today part">S<span>3</span></div><div>S<span>·</span></div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="label" style="color:var(--water)">WATER</div><div class="muted" style="font-size:11.5px">5 of 8 glasses</div></div>
+            <div class="water" id="water"></div>
+            <div class="muted" style="font-size:11px">More on hot days and after a workout.</div>
+          </div>
+
+          <div class="section">MORNING</div>
+          <div class="card" style="padding:4px 14px">
+            <div class="goal done"><div class="check on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg></div><div><div class="t">Warm water after waking</div><div class="s">After you wake up</div></div></div>
+            <div class="goal"><div class="check"></div><div><div class="t">15 min yoga</div><div class="s">Before breakfast · 7:00</div></div><div class="go">Yoga videos ›</div></div>
+          </div>
+          <div class="section">DAY</div>
+          <div class="card" style="padding:4px 14px">
+            <div class="goal done"><div class="check on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg></div><div><div class="t">10-min walk after lunch</div><div class="s">After lunch</div></div></div>
+            <div class="goal"><div class="check"></div><div><div class="t">A fresh salad</div><div class="s">Lunch or dinner</div></div><div class="go">Menu ›</div></div>
+          </div>
+          <div class="section">EVENING</div>
+          <div class="card" style="padding:4px 14px">
+            <div class="goal done"><div class="check on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg></div><div><div class="t">Dinner by 8 PM</div><div class="s">Light and early</div></div></div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab on"><div class="pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="var(--primary)"><path d="M3 11 12 3l9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></div>Home</div>
+          <div class="tab"><div class="pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--inactive)" stroke-width="1.8"><path d="M5 19c0-8 6-14 15-15-1 9-7 15-15 15zM5 19l7-7"/></svg></div>Menu</div>
+          <div class="tab"><div class="pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--inactive)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></svg></div>Videos</div>
+          <div class="tab"><div class="pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--inactive)" stroke-width="1.8"><circle cx="6" cy="16" r="3.5"/><circle cx="18" cy="16" r="3.5"/><path d="m6 16 4-7h5l3 7M10 9 8 6H6"/></svg></div>Deliveries</div>
+          <div class="tab"><div class="pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--inactive)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg></div>Profile</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 3. Setup -->
+    <div class="col">
+      <div class="tag">3 · Pick your goals</div>
+      <div class="sub">Shown once (and from Edit). Each goal is tied to a moment of the day, with an optional reminder.</div>
+      <div class="phone"><div class="screen app light">
+        <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+        <div class="scroll">
+          <div style="padding-top:10px" class="label">YOUR SATVIK DAY</div>
+          <div class="serif" style="font-size:22px;margin-top:4px;line-height:1.2">Pick 3 to 5 small goals</div>
+          <div class="muted" style="font-size:12.5px;margin-top:5px">Small and daily beats big and rare. You can change these any time.</div>
+          <div class="grid">
+            <div class="opt on"><div class="tick"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4"><path d="m5 12 5 5 9-10"/></svg></div><div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg></div><b>Drink water</b><small>8 glasses</small></div>
+            <div class="opt on"><div class="tick"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4"><path d="m5 12 5 5 9-10"/></svg></div><div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><circle cx="12" cy="5" r="2"/><path d="M5 21l4-7 3 2 3-2 4 7M7 10h10"/></svg></div><b>Yoga</b><small>15 min, morning</small></div>
+            <div class="opt on"><div class="tick"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4"><path d="m5 12 5 5 9-10"/></svg></div><div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M5 19c0-8 6-14 15-15-1 9-7 15-15 15zM5 19l7-7"/></svg></div><b>A fresh salad</b><small>Once a day</small></div>
+            <div class="opt"><div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><circle cx="13" cy="4" r="2"/><path d="m9 21 3-7 3 3v5M12 14l-2-4 4-2 3 4h3"/></svg></div><b>Walk</b><small>10 min after meals</small></div>
+            <div class="opt on"><div class="tick"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4"><path d="m5 12 5 5 9-10"/></svg></div><div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M20 14A8 8 0 1 1 10 4a7 7 0 0 0 10 10z"/></svg></div><b>Dinner by 8 PM</b><small>Light and early</small></div>
+            <div class="opt"><div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M4 12h4l2-5 4 10 2-5h4"/></svg></div><b>5-min breathing</b><small>Anytime</small></div>
+          </div>
+          <div class="section">REMINDERS</div>
+          <div class="remind"><span>Yoga · 7:00 AM</span><span class="toggle"></span></div>
+          <div class="remind"><span>Dinner · 7:30 PM</span><span class="toggle"></span></div>
+          <div class="btn" style="margin-top:10px">Start my day</div>
+          <div class="foot">Suggestions reviewed by Divya Agrawal, clinical dietitian.<br>General wellness guidance, not medical advice.</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><h3>Why this shape</h3><ul>
+      <li>Each goal is tied to a moment ("after lunch", "before breakfast"). Research on habit apps found this builds real habits better than plain reminders.</li>
+      <li>Habits take about 66 days to stick, and one missed day doesn't undo them. So the week view is forgiving: a rest day, no reset to zero.</li>
+      <li>Every goal points to Satvik: yoga → Videos, salad → Menu/Plans, habits → Divya's consultation.</li>
+      <li>The popup shows only on the first open of the day, never on top of another popup, and can be turned off in Settings. After closing it, goals stay one tap away in Profile.</li></ul></div>
+    <div class="note"><h3>What it needs</h3><ul>
+      <li>Ticks, streaks, tips, timings and reminders: no native change, so it can ship as an over-the-air update.</li>
+      <li>Tips and goal lists from the website admin, so the team can change them without an app update.</li>
+      <li>Automatic step counting would need a native module and a motion permission in the store build.</li></ul></div>
+    <div class="note"><h3>Guardrails</h3><ul>
+      <li>Wellness wording only: no medical claims, diagnoses or calorie targets (App Store 1.4.1, Play health policy).</li>
+      <li>Numbers follow public guidance: 30–45 min activity a day (ICMR-NIN 2024), water adjusted for climate.</li>
+      <li>Content reviewed by Divya before it goes live.</li></ul></div>
+  </div>
+
+<script>
+  // Water glasses: 5 of 8 filled
+  const water = document.getElementById("water");
+  for (let i = 0; i < 8; i++) {
+    const full = i < 5;
+    water.insertAdjacentHTML("beforeend",
+      `<svg viewBox="0 0 25 32"><path d="M3 3h19l-2.4 25a2 2 0 0 1-2 1.8H7.4a2 2 0 0 1-2-1.8z" fill="${full ? "var(--waterSoft)" : "none"}" stroke="${full ? "var(--water)" : "var(--edge)"}" stroke-width="1.8"/>${full ? '<path d="M5.2 12h14.6l-1.7 15.6a1 1 0 0 1-1 .9H7.9a1 1 0 0 1-1-.9z" fill="var(--water)" opacity=".85"/>' : ""}</svg>`);
+  }
+  // Light / dark switch for the phone screens
+  document.querySelectorAll(".switch button").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll(".switch button").forEach((x) => x.classList.toggle("on", x === b));
+    document.querySelectorAll(".app").forEach((s) => { s.classList.toggle("dark", b.dataset.theme === "dark"); s.classList.toggle("light", b.dataset.theme !== "dark"); });
+  }));
+</script>
+</body>
+</html>
