@@ -1,6 +1,6 @@
 import type { Href } from 'expo-router';
 import { Tabs, usePathname, useRouter } from 'expo-router';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { runOnJS } from 'react-native-reanimated';
@@ -11,6 +11,7 @@ import { TabIcon } from '@/components/ui/tab-icon';
 import { Colors } from "@/constants/theme";
 import {
   TAB_BASE_H,
+  TAB_BAR_MAX_WIDTH,
   TAB_BOTTOM_PAD,
   TAB_TOP_RADIUS,
   tabBarBaseStyle,
@@ -34,6 +35,7 @@ export default function TabLayout() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
 
   // Android gesture navigation leaves an inset of ≤16dp (a button bar is ≥40dp)
   // and needs extra bottom padding.
@@ -99,13 +101,16 @@ export default function TabLayout() {
                 height:
                   TAB_BASE_H + insets.bottom + TAB_BOTTOM_PAD + extraBottomPad,
                 paddingBottom: insets.bottom + TAB_BOTTOM_PAD + extraBottomPad,
-                paddingHorizontal: Platform.OS === "ios" ? 8 : 4,
+                // Keeps the five tabs together on wide screens instead of spread edge to edge.
+                paddingHorizontal: Math.max(Platform.OS === "ios" ? 8 : 4, (width - TAB_BAR_MAX_WIDTH) / 2),
                 backgroundColor:
                   Platform.OS === "ios" ? "transparent" : c.tabBar,
                 borderTopColor: c.tabBarBorder,
               },
             ],
             tabBarLabelStyle,
+            // Wide screens default to labels beside the icons, which the pill indicator isn't drawn for.
+            tabBarLabelPosition: "below-icon",
             tabBarAllowFontScaling: false,
             tabBarItemStyle,
             tabBarIconStyle,

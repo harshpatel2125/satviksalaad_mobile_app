@@ -31,6 +31,7 @@ import {
 import { useSubscriptions } from '@/components/screens/subscriptions/subscription-info';
 import { PlansSkeleton } from '@/components/skeletons/plans-skeleton';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { homeApi, plansApi, slotsApi } from '@/lib/api';
 import { gstNote } from '@/lib/gst';
@@ -51,14 +52,12 @@ function inShowOrder(plans: Plan[]): Plan[] {
   );
 }
 
-const TABLET_BREAKPOINT = 768;
 
 export default function PlansScreen() {
   const { colors, fonts } = useTheme();
   const router  = useRouter();
   const { planId: requestedPlanId } = useLocalSearchParams<{ planId?: string }>();
-  const { width, height: windowHeight } = useWindowDimensions();
-  const isTablet = width >= TABLET_BREAKPOINT;
+  const { height: windowHeight } = useWindowDimensions();
 
   const scrollViewRef   = useRef<ScrollView>(null);
   const scheduleLayoutY = useRef(0);
@@ -210,11 +209,6 @@ export default function PlansScreen() {
   }, [allPlans, categories]);
 
   const canCheckout   = !!selectedPlan && days.length > 0;
-  const contentPadding = isTablet ? Spacing[8] : Spacing[5];
-  const maxCardWidth   = isTablet ? Math.min(width - contentPadding * 2, 640) : undefined;
-  const tabletCenter: object | undefined = isTablet
-    ? { maxWidth: maxCardWidth, alignSelf: 'center' as const, width: '100%' as const }
-    : undefined;
 
   if (isLoading) {
     return (
@@ -284,16 +278,17 @@ export default function PlansScreen() {
           scrollEventThrottle={16}
           onScroll={handleScrollEvent}
           contentContainerStyle={[
+            column(),
             styles.scroll,
             {
               paddingTop: Spacing[3],
               paddingBottom: Spacing[5],
-              paddingHorizontal: contentPadding,
+              paddingHorizontal: Spacing[5],
             },
           ]}
         >
           {notice ? (
-            <View style={[styles.notice, { backgroundColor: notice.bg }, tabletCenter]}>
+            <View style={[styles.notice, { backgroundColor: notice.bg }]}>
               <Ionicons name={notice.icon} size={18} color={notice.fg} />
               <Text style={[styles.noticeText, { color: notice.fg, fontFamily: fonts.body }]}>
                 {notice.text}
@@ -305,7 +300,7 @@ export default function PlansScreen() {
             const delay = 60 + gi * 260;
             const lead = group.key === 'fruit' ? null : group.plans.find((p) => p.is_popular) ?? (gi === 0 ? group.plans[0] : null);
             return (
-              <View key={group.key} style={[styles.section, tabletCenter]}>
+              <View key={group.key} style={styles.section}>
                 <SectionLabel
                   label={group.name.toUpperCase()}
                   sub={`${group.plans.length} ${group.plans.length === 1 ? 'plan' : 'plans'}`}
@@ -330,10 +325,7 @@ export default function PlansScreen() {
           })}
 
           {/* ── Delivery Schedule ─────────────────────────────────────────── */}
-          <View
-            style={tabletCenter}
-            onLayout={(e) => { scheduleLayoutY.current = e.nativeEvent.layout.y; }}
-          >
+          <View onLayout={(e) => { scheduleLayoutY.current = e.nativeEvent.layout.y; }}>
             <DeliverySchedule
               selectedDays={days}
               onToggleDay={toggleDay}
@@ -345,7 +337,7 @@ export default function PlansScreen() {
             />
           </View>
 
-          <Animated.View entering={FadeInDown.delay(540).springify().damping(16)} style={tabletCenter}>
+          <Animated.View entering={FadeInDown.delay(540).springify().damping(16)}>
             <PlansInfo
               plans={allPlans}
               gstRateBps={gstRateBps}
@@ -365,11 +357,6 @@ export default function PlansScreen() {
             gstNote={gstNote(gstRateBps)}
             canCheckout={canCheckout}
             onCheckout={handleCheckoutPress}
-            style={
-              isTablet
-                ? { maxWidth: maxCardWidth, alignSelf: "center", width: "100%" }
-                : undefined
-            }
           />
         </BottomActionBar>
       )}

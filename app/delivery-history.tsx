@@ -17,6 +17,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 
 import { DeliveryHistorySkeleton } from '@/components/skeletons/delivery-history-skeleton';
 import { FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { deliveryHistoryApi } from '@/lib/api';
 import { historyItem } from '@/lib/subscription-view';
@@ -144,6 +145,7 @@ export default function DeliveryHistoryScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
+          column(),
           styles.content,
           { paddingTop: Spacing[4], paddingBottom: insets.bottom },
         ]}

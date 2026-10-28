@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Text } from '@/components/ui/text';
 import { Brand, CardEdge, FontSize, LineHeight, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { toWhatsAppNumber } from '@/lib/contact-actions';
 import { useSupportContact } from '@/lib/support-contact';
@@ -82,7 +83,7 @@ export default function DietConsultationScreen() {
       <ScreenHeader title="Diet consultation" onBack={() => router.back()} />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[s.content, { paddingBottom: insets.bottom + Spacing[6] }]}
+        contentContainerStyle={[column(), s.content, { paddingBottom: insets.bottom + Spacing[6] }]}
       >
         <View style={s.intro}>
           <Text style={[s.eyebrow, { color: colors.primary, fontFamily: fonts.bodySemibold }]}>1:1 CLINICAL NUTRITION</Text>

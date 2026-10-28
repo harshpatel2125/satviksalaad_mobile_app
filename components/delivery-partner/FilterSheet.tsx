@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui/text';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { SHEET_WIDTH, column } from '@/constants/layout';
 import { useTheme } from '@/hooks/use-theme';
 
 interface Chip {
@@ -79,6 +80,7 @@ export default function FilterSheet({
         <Animated.View
           style={[
             styles.sheet,
+            column(SHEET_WIDTH),
             sheetStyle,
             { backgroundColor: colors.surface, paddingBottom: insets.bottom + Spacing[4] },
           ]}

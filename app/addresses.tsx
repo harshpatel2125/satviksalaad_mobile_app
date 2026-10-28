@@ -17,6 +17,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { AddressesSkeleton } from '@/components/skeletons/addresses-skeleton';
 import { AddressCard } from '@/components/screens/addresses/address-card';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useAlert } from '@/context/alert';
 import { useAuth } from '@/context/auth';
 import { addressesApi } from '@/lib/api';
@@ -202,7 +203,7 @@ export default function AddressesScreen() {
 
       <ScrollView
         style={s.scroll}
-        contentContainerStyle={[s.scrollContent, { paddingTop: Spacing[5], paddingBottom: insets.bottom + Spacing[4] }]}
+        contentContainerStyle={[column(), s.scrollContent, { paddingTop: Spacing[5], paddingBottom: insets.bottom + Spacing[4] }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

@@ -14,6 +14,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 
 import { InvoiceDetailSkeleton } from '@/components/skeletons/invoice-detail-skeleton';
 import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useAlert } from '@/context/alert';
 import { useTheme } from '@/hooks/use-theme';
 import { invoicesApi } from '@/lib/api';
@@ -107,7 +108,7 @@ export default function InvoiceDetailScreen() {
         <ScreenHeader title={data?.invoice.invoice_number ?? 'Invoice'} onBack={() => router.back()} />
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: Spacing[5] }}
+          contentContainerStyle={[column(), { paddingBottom: Spacing[5] }]}
         >
           <InvoiceDetailSkeleton />
         </ScrollView>
@@ -162,11 +163,11 @@ export default function InvoiceDetailScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
+        contentContainerStyle={[column(), {
           paddingHorizontal: Spacing[5],
           paddingTop: Spacing[4],
           paddingBottom: Spacing[5], // leave room for sticky CTA
-        }}
+        }]}
       >
         {/* Status banners ────────────────────────────────────────────── */}
         {isSuperseded && supersededBy && (

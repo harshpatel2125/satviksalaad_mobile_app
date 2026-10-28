@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/components/ui/screen-header';
 
 import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useAlert } from '@/context/alert';
 import { ItemThumb } from '@/components/screens/deliveries/delivery-day-card';
 import { useSkip } from '@/components/screens/deliveries/use-skip';
@@ -265,6 +266,7 @@ export default function DeliveryDetailScreen() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
+          column(),
           styles.content,
           { paddingTop: Spacing[4], paddingBottom: insets.bottom },
         ]}

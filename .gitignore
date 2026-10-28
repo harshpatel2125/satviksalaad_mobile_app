@@ -42,10 +42,6 @@ app-example
 /ios
 /android
 
-# Firebase config
-GoogleService-Info.plist
-google-services.json
-
 # EAS Credentials
 credentials.json
 /credentials

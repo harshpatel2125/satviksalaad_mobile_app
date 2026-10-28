@@ -1,7 +1,8 @@
 import React from 'react';
-import { Platform, StyleSheet, View, ViewStyle } from 'react-native';
+import { Platform, StyleSheet, useWindowDimensions, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { READING_WIDTH } from '@/constants/layout';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -16,6 +17,8 @@ interface BottomActionBarProps {
   /** Skip fixed height — content determines bar height. Use for multi-row bars. */
   flexible?: boolean;
   style?: ViewStyle;
+  /** Lines the buttons up with the screen's content column on wide screens. */
+  maxWidth?: number;
 }
 
 export function BottomActionBar({
@@ -23,9 +26,11 @@ export function BottomActionBar({
   absolute,
   flexible,
   style,
+  maxWidth = READING_WIDTH,
 }: BottomActionBarProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
 
   // Android gesture navigation leaves an inset of ≤16dp (a button bar is ≥40dp)
   // and needs extra bottom padding.
@@ -42,6 +47,7 @@ export function BottomActionBar({
           borderTopColor: colors.border,
           ...(!flexible && { height: BAR_BASE_H + insets.bottom + BAR_BOTTOM_PAD + extraBottomPad }),
           paddingBottom: insets.bottom + BAR_BOTTOM_PAD + extraBottomPad,
+          paddingHorizontal: Math.max(Spacing[5], (width - maxWidth) / 2 + Spacing[5]),
         },
         style,
       ]}
@@ -54,7 +60,6 @@ export function BottomActionBar({
 const styles = StyleSheet.create({
   bar: {
     paddingTop: 4,
-    paddingHorizontal: Spacing[5],
     borderTopWidth: 1,
     justifyContent: "center",
   },

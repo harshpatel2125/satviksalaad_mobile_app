@@ -56,11 +56,11 @@ export const trackScreenView = (screenName: string): void => {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-export const trackLogin = (method: 'phone' | 'google' | 'apple'): void => {
+export const trackLogin = (method: 'phone' | 'google'): void => {
   if (am && fa) void am.logEvent(fa, 'login', { method });
 };
 
-export const trackSignUp = (method: 'phone' | 'google' | 'apple'): void => {
+export const trackSignUp = (method: 'phone' | 'google'): void => {
   if (am && fa) void am.logEvent(fa, 'sign_up', { method });
 };
 

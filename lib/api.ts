@@ -20,7 +20,6 @@ import type {
   NotificationsResponse,
   OtpSendResponse,
   OtpVerifyResponse,
-  MobileSignInResponse,
   PlansResponse,
   SlotsResponse,
   ProfileResponse,
@@ -137,12 +136,6 @@ export const auth = {
     }),
 
   /** `nonce` is the raw nonce whose SHA-256 was given to Apple. */
-  signInWithApple: (idToken: string, nonce: string, fullName?: string) =>
-    apiFetch<MobileSignInResponse>('/api/auth/mobile/apple', {
-      method: 'POST',
-      body: JSON.stringify({ idToken, nonce, fullName }),
-    }),
-
   googleSignInUrl: (redirect: string) =>
     `${BASE_URL}/api/auth/mobile/google?redirect=${encodeURIComponent(redirect)}`,
 };

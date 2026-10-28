@@ -5,6 +5,7 @@ import { Text } from '@/components/ui/text';
 import { ProfileHeader } from '@/components/screens/profile/profile-header';
 import { MenuRow, SettingsSection, SignOutRow } from '@/components/screens/profile/settings-section';
 import { FontSize, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useAlert } from '@/context/alert';
 import { useAuth } from '@/context/auth';
 import { useTheme } from '@/hooks/use-theme';
@@ -45,7 +46,7 @@ export default function DeliveryPartnerProfileScreen() {
   }
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <View style={[styles.root, column(), { backgroundColor: colors.background }]}>
       <View
         style={[
           styles.topBar,

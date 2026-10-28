@@ -6,6 +6,7 @@ export type AppConfig = {
   otaUrl: string;
   minVersion: { ios: string; android: string };
   storeUrl: { ios: string; android: string };
+  googleSignIn: boolean;
 };
 
 const BUILT_IN: AppConfig = {
@@ -16,6 +17,7 @@ const BUILT_IN: AppConfig = {
     ios: process.env.EXPO_PUBLIC_APP_STORE_URL ?? '',
     android: process.env.EXPO_PUBLIC_PLAY_STORE_URL ?? '',
   },
+  googleSignIn: false,
 };
 
 const CACHE_KEY = 'app-config';
@@ -44,6 +46,7 @@ function withOverrides(raw: unknown): AppConfig {
       ios: pick(storeUrl.ios, BUILT_IN.storeUrl.ios),
       android: pick(storeUrl.android, BUILT_IN.storeUrl.android),
     },
+    googleSignIn: typeof r.googleSignIn === 'boolean' ? r.googleSignIn : BUILT_IN.googleSignIn,
   };
 }
 

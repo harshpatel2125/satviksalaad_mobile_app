@@ -18,6 +18,7 @@ import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTyp
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Text } from '@/components/ui/text';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { DEEP_LINK_BASE } from '@/lib/deep-links';
 import {
@@ -302,13 +303,17 @@ export default function VideoPlayerScreen() {
               { borderTopColor: colors.border, backgroundColor: colors.background, paddingBottom: insets.bottom + Spacing[3] },
             ]}
           >
-            <VideoDetails video={video} categories={categories} compact />
+            <View style={column()}>
+              <VideoDetails video={video} categories={categories} compact />
+            </View>
           </View>
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
           <Player video={video} />
-          <VideoDetails video={video} categories={categories} />
+          <View style={column()}>
+            <VideoDetails video={video} categories={categories} />
+          </View>
         </ScrollView>
       )}
     </View>

@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { appSettingsApi } from '@/lib/api';
 import { policyUrls } from '@/lib/policy-urls';
@@ -94,6 +95,7 @@ export default function PoliciesScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
+          column(),
           styles.scroll,
           {
             paddingTop: Spacing[4],

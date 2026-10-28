@@ -20,6 +20,7 @@ import { MenuSkeleton } from '@/components/skeletons/menu-skeleton';
 import { MealCard } from '@/components/screens/menu/meal-card';
 import { TodayMenu } from '@/components/screens/menu/today-menu';
 import { FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
+import { column, columnsFor, WIDE_WIDTH } from '@/constants/layout';
 import { useQueryFocusRefetch } from '@/hooks/useQueryFocusRefetch';
 import { useTheme } from '@/hooks/use-theme';
 import { menuApi } from '@/lib/api';
@@ -58,8 +59,9 @@ export default function MenuScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const columns = width >= 600 ? 3 : 2;
-  const cardWidth = Math.floor((width - Spacing[5] * 2 - GRID_GAP * (columns - 1)) / columns);
+  const gridWidth = Math.min(width, WIDE_WIDTH) - Spacing[5] * 2;
+  const columns = columnsFor(gridWidth, 160, GRID_GAP);
+  const cardWidth = Math.floor((gridWidth - GRID_GAP * (columns - 1)) / columns);
 
   const [activeTab, setActiveTab] = useState<string | null>(null);
 
@@ -164,6 +166,7 @@ export default function MenuScreen() {
       <View
         style={[
           s.header,
+          column(WIDE_WIDTH),
           {
             paddingTop: insets.top + (Platform.OS === "android" ? 12 : 0),
             backgroundColor: colors.background,
@@ -238,7 +241,7 @@ export default function MenuScreen() {
         >
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[s.scroll, { paddingBottom: Spacing[5] }]}
+            contentContainerStyle={[column(WIDE_WIDTH), s.scroll, { paddingBottom: Spacing[5] }]}
             refreshControl={
               <RefreshControl
                 refreshing={isManualRefreshing}

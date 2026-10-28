@@ -17,13 +17,6 @@ export interface OtpVerifyResponse {
   error?: string;
 }
 
-export interface MobileSignInResponse {
-  success: boolean;
-  token: string;
-  hasName: boolean;
-  error?: string;
-}
-
 // ─── Profile ──────────────────────────────────────────────────────────────────
 export interface Profile {
   full_name: string | null;

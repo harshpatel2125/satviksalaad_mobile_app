@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui/text';
 import { CardEdge, FontSize, Radius, Shadows, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { partnerReportApi, type DateRangeKey, type PartnerSelfReport } from '@/lib/delivery-partner/report-api';
 import { slotName, useSlots } from '@/lib/slots';
@@ -114,7 +115,7 @@ export default function PartnerReportScreen() {
       : null;
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <View style={[styles.root, column(), { backgroundColor: colors.background }]}>
       <View style={[styles.topBar, { backgroundColor: colors.background, paddingTop: insets.top + Spacing[3] }]}>
         <Text style={[styles.topBarTitle, { color: colors.text, fontFamily: fonts.display }]}>
           My Report

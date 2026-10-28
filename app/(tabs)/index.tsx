@@ -31,6 +31,7 @@ import { VideoStrip } from '@/components/screens/home/video-strip';
 import { DeliveryDayCard } from '@/components/screens/deliveries/delivery-day-card';
 import { deliveryDetailParams, useSubscriptions } from '@/components/screens/subscriptions/subscription-info';
 import { Brand, CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { homeApi, notificationsApi, plansApi, subscriptionsApi } from '@/lib/api';
 import { useTrialPopupTrigger } from '@/hooks/use-trial-popup-trigger';
 import { TrialBowlSheet } from '@/components/screens/home/trial-bowl-sheet';
@@ -249,6 +250,7 @@ export default function HomeScreen() {
       <Animated.ScrollView
         style={[styles.scroll, animatedScreenStyle]}
         contentContainerStyle={[
+          column(),
           styles.content,
           { paddingTop: Spacing[3], paddingBottom: Spacing[5] },
         ]}

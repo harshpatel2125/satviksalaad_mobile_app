@@ -13,6 +13,7 @@ import { BottomActionBar } from '@/components/ui/bottom-action-bar';
 import { ScreenHeader } from '@/components/ui/screen-header';
 
 import { FontSize, Radius, Shadows, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { addressesApi, MIN_FULL_ADDRESS } from '@/lib/api';
 import { queryClient } from '@/lib/query-client';
 import { useAuth } from '@/context/auth';
@@ -113,7 +114,7 @@ export default function EditAddress() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: Spacing[4], paddingBottom: Spacing[5] }]}
+        contentContainerStyle={[column(), styles.scrollContent, { paddingTop: Spacing[4], paddingBottom: Spacing[5] }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >

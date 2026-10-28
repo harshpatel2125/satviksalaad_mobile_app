@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 
 import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { SHEET_WIDTH, column } from '@/constants/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { useThemePreference, type ThemePreference } from '@/context/theme-preference';
 
@@ -49,7 +50,7 @@ export function AppearanceSheet({ visible, onClose }: AppearanceSheetProps) {
       </TouchableWithoutFeedback>
 
       <View style={s.centeredWrap} pointerEvents="box-none">
-        <View style={[s.dialog, { backgroundColor: colors.surface, paddingBottom: Math.max(insets.bottom, 24) + Spacing[3] }]}>
+        <View style={[s.dialog, column(SHEET_WIDTH), { backgroundColor: colors.surface, paddingBottom: Math.max(insets.bottom, 24) + Spacing[3] }]}>
           <View style={[s.grabber, { backgroundColor: colors.border }]} />
           {/* Title */}
           <Text style={[s.title, { color: colors.text, fontFamily: fonts.display }]}>

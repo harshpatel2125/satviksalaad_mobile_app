@@ -15,6 +15,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { AppearanceSheet } from '@/components/screens/profile/appearance-sheet';
 import { DeleteAccountModal } from '@/components/screens/profile/delete-account-modal';
 import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useThemePreference } from '@/context/theme-preference';
 import { useTheme } from '@/hooks/use-theme';
 import { useAlert } from '@/context/alert';
@@ -381,6 +382,7 @@ export default function MSettings() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
+          column(),
           styles.scrollContent,
           {
             paddingTop: 0,

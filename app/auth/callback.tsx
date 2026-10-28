@@ -21,6 +21,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { trackLogin } from '@/lib/analytics';
 import { clearGoogleSignInPending, isGoogleSignInPending, signInWithToken } from '@/lib/auth-session';
 import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
+import { column, NARROW_WIDTH } from '@/constants/layout';
 
 /**
  * Where Google sign-in returns, with the backend's session token (?token=) or
@@ -123,7 +124,7 @@ export default function AuthCallbackScreen() {
   if (exchangeError) {
     return (
       <View style={[s.root, { backgroundColor: colors.background }]}>
-        <View style={[s.errorCard, { backgroundColor: colors.surface, borderWidth: 0 }, CardEdge]}>
+        <View style={[s.errorCard, column(NARROW_WIDTH), { backgroundColor: colors.surface, borderWidth: 0 }, CardEdge]}>
           <View style={[s.errorIcon, { backgroundColor: colors.errorBg }]}>
             <Ionicons name="alert-circle" size={28} color={colors.error} />
           </View>
@@ -148,7 +149,7 @@ export default function AuthCallbackScreen() {
 
   return (
     <View style={[s.root, { backgroundColor: colors.background }]}>
-      <View style={s.content}>
+      <View style={[s.content, column(NARROW_WIDTH)]}>
 
         {/* Logo */}
         <Image

@@ -1,10 +1,11 @@
 import { Tabs } from 'expo-router';
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabIcon } from '@/components/ui/tab-icon';
 import { Colors } from '@/constants/theme';
 import {
+  TAB_BAR_MAX_WIDTH,
   TAB_BASE_H,
   TAB_BOTTOM_PAD,
   tabBarBaseStyle,
@@ -18,6 +19,7 @@ export default function DeliveryPartnerLayout() {
   const { effectiveScheme: scheme } = useThemePreference();
   const c = Colors[scheme];
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
@@ -31,11 +33,13 @@ export default function DeliveryPartnerLayout() {
             {
               height: TAB_BASE_H + insets.bottom + TAB_BOTTOM_PAD,
               paddingBottom: insets.bottom + TAB_BOTTOM_PAD,
+              paddingHorizontal: Math.max(0, (width - TAB_BAR_MAX_WIDTH) / 2),
               backgroundColor: c.tabBar,
               borderTopColor: c.tabBarBorder,
             },
           ],
           tabBarLabelStyle,
+          tabBarLabelPosition: 'below-icon',
           tabBarAllowFontScaling: false,
           tabBarItemStyle,
           tabBarIconStyle,

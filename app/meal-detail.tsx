@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Text } from '@/components/ui/text';
@@ -16,6 +17,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { BottomActionBar } from '@/components/ui/bottom-action-bar';
 import { Skeleton } from '@/components/skeleton';
 import { Brand, CardEdge, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useAuth } from '@/context/auth';
 import { useTheme } from '@/hooks/use-theme';
 import { optimizedImageSource } from '@/lib/image-url';
@@ -54,6 +56,7 @@ function NutritionCell({
 export default function MealDetailScreen() {
   const { colors, fonts } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const router = useRouter();
   const { session } = useAuth();
   const queryClient = useQueryClient();
@@ -127,7 +130,7 @@ export default function MealDetailScreen() {
         contentContainerStyle={{ paddingBottom: Spacing[5] }}>
 
         {/* ── Hero image ── */}
-        <View style={styles.hero}>
+        <View style={[styles.hero, { height: Math.min(width * (9 / 16), HERO_MAX_HEIGHT) }]}>
           <Image
             source={
               optimizedImageSource(imageUrl)
@@ -160,7 +163,7 @@ export default function MealDetailScreen() {
         </View>
 
         {/* ── Content ── */}
-        <View style={styles.content}>
+        <View style={[styles.content, column()]}>
           {!imageUrl && (
             <Text style={[styles.photoNote, { color: colors.textMuted, fontFamily: fonts.body }]}>
               {PHOTO_COMING_SOON}
@@ -315,12 +318,14 @@ function InfoRow({
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
+// A 16:9 photo at tablet width would fill most of the screen.
+const HERO_MAX_HEIGHT = 440;
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
 
   hero: {
     width: '100%',
-    aspectRatio: 16 / 9,
     position: 'relative',
     overflow: 'hidden',
     backgroundColor: Brand.sageLight,

@@ -17,6 +17,7 @@ import { trackLogin, trackSignUp } from '@/lib/analytics';
 import { signInWithToken } from '@/lib/auth-session';
 import { withNetworkRetry } from '@/lib/network-retry';
 import { FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
+import { column, NARROW_WIDTH } from '@/constants/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/context/auth';
 import { OtpBoxRow, type OtpBoxRowHandle } from '@/components/ui/otp-box-row';
@@ -126,6 +127,7 @@ export default function OtpScreen() {
       <View
         style={[
           styles.inner,
+          column(NARROW_WIDTH),
           { paddingTop: insets.top + Spacing[2], paddingBottom: insets.bottom + Spacing[6] },
         ]}>
 

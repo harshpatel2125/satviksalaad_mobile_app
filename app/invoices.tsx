@@ -17,6 +17,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 
 import { InvoicesSkeleton } from '@/components/skeletons/invoices-skeleton';
 import { CardEdge, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useQueryFocusRefetch } from '@/hooks/useQueryFocusRefetch';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/context/auth';
@@ -117,6 +118,7 @@ export default function InvoicesScreen() {
           />
         }
         contentContainerStyle={[
+          column(),
           styles.scrollContent,
           { paddingTop: Spacing[4], paddingBottom: Spacing[5] },
         ]}

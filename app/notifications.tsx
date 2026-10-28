@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/skeleton';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { column, SHEET_WIDTH } from '@/constants/layout';
 import { useAuth } from '@/context/auth';
 import { useQueryFocusRefetch } from '@/hooks/useQueryFocusRefetch';
 import { useTheme } from '@/hooks/use-theme';
@@ -308,7 +309,7 @@ export default function NotificationsScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={[styles.filtersContent, { paddingHorizontal: Spacing[5] }]}
-        style={styles.filtersScroll}
+        style={[styles.filtersScroll, column()]}
       >
         {FILTERS.map((f) => {
           const isActive = f === activeFilter;
@@ -344,7 +345,7 @@ export default function NotificationsScreen() {
       {/* ── List ──────────────────────────────────────────────────────────── */}
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={{ paddingBottom: Spacing[5] }}
+        contentContainerStyle={[column(), { paddingBottom: Spacing[5] }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -413,6 +414,7 @@ export default function NotificationsScreen() {
           <View
             style={[
               modal.sheet,
+              column(SHEET_WIDTH),
               {
                 backgroundColor: colors.surface,
                 borderWidth: 1,

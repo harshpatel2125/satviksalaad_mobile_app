@@ -17,6 +17,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 
 import { Skeleton } from "@/components/skeleton";
 import { Brand, FontSize, Radius, Shadows, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useAlert } from '@/context/alert';
 import { useAuth } from '@/context/auth';
 import { ApiError, addressesApi, authHeader, ordersApi, paymentsApi, plansApi, subscriptionsApi } from '@/lib/api';
@@ -402,6 +403,7 @@ export default function CheckoutScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
+          column(),
           styles.scroll,
           { paddingTop: Spacing[4], paddingBottom: Spacing[5] },
         ]}

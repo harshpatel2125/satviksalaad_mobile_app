@@ -2,7 +2,7 @@
   "expo": {
     "name": "Satvik Salaad",
     "slug": "satviksalaad",
-    "version": "1.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo/icon.png",
     "scheme": "satviksalaad",
@@ -123,7 +123,14 @@
           "channel": "production"
         }
       ],
-      "expo-apple-authentication",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Satvik Salaad uses your location to fill in your delivery address and to help the delivery partner find you.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false
+        }
+      ],
       [
         "expo-video",
         {

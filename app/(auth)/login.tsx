@@ -1,16 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as AppleAuthentication from "expo-apple-authentication";
-import {
-  digestStringAsync,
-  CryptoDigestAlgorithm,
-  getRandomBytesAsync,
-} from "expo-crypto";
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import type { Href } from 'expo-router';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -24,11 +18,12 @@ import { Text } from '@/components/ui/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { auth } from '@/lib/api';
+import { getAppConfig, loadAppConfig } from '@/lib/app-config';
 import { withNetworkRetry } from '@/lib/network-retry';
-import { trackLogin } from "@/lib/analytics";
 import { FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
+import { NARROW_WIDTH, column } from '@/constants/layout';
 import { useTheme } from '@/hooks/use-theme';
-import { clearGoogleSignInPending, markGoogleSignInPending, signInWithToken } from '@/lib/auth-session';
+import { clearGoogleSignInPending, markGoogleSignInPending } from '@/lib/auth-session';
 
 // Required on Android so the auth session closes cleanly after redirect
 WebBrowser.maybeCompleteAuthSession();
@@ -42,8 +37,17 @@ export default function LoginScreen() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [appleLoading, setAppleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [googleConfigured, setGoogleConfigured] = useState(() => getAppConfig().googleSignIn);
+
+  useEffect(() => {
+    let active = true;
+    void loadAppConfig().then((c) => { if (active) setGoogleConfigured(c.googleSignIn); });
+    return () => { active = false; };
+  }, []);
+
+  // Not on iOS: the App Store requires Sign in with Apple next to any third-party sign-in.
+  const showGoogle = Platform.OS === 'android' && googleConfigured;
 
   const isValid = /^[6-9]\d{9}$/.test(phone.trim());
 
@@ -76,53 +80,6 @@ export default function LoginScreen() {
     }
   }
 
-  async function handleAppleSignIn() {
-    if (appleLoading) return;
-    setAppleLoading(true);
-    setError(null);
-    try {
-      // Cryptographically random nonce — needed for Apple's replay-attack prevention
-      const rawNonceBytes = await getRandomBytesAsync(16);
-      const rawNonce = Array.from(rawNonceBytes)
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-      const hashedNonce = await digestStringAsync(
-        CryptoDigestAlgorithm.SHA256,
-        rawNonce,
-      );
-
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-        nonce: hashedNonce,
-      });
-
-      if (!credential.identityToken)
-        throw new Error("No identity token from Apple.");
-
-      // Apple shares the name only on the first sign-in; the backend keeps it.
-      const givenName = credential.fullName?.givenName ?? "";
-      const familyName = credential.fullName?.familyName ?? "";
-      const fullName = [givenName, familyName].filter(Boolean).join(" ");
-
-      const res = await auth.signInWithApple(credential.identityToken, rawNonce, fullName || undefined);
-      await signInWithToken(res.token);
-      trackLogin("apple");
-    } catch (err: unknown) {
-      // ERR_REQUEST_CANCELED = user dismissed the Apple sheet — not an error worth showing
-      if ((err as { code?: string }).code === "ERR_REQUEST_CANCELED") return;
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Apple sign-in failed. Please try again.",
-      );
-    } finally {
-      setAppleLoading(false);
-    }
-  }
-
   async function handleSend() {
     if (!isValid || loading) return;
     setLoading(true);
@@ -148,6 +105,7 @@ export default function LoginScreen() {
     >
       <ScrollView
         contentContainerStyle={[
+          column(NARROW_WIDTH),
           styles.scroll,
           {
             paddingTop: insets.top + Spacing[8],
@@ -315,86 +273,61 @@ export default function LoginScreen() {
           )}
         </TouchableOpacity>
 
-        {/* Divider */}
-        <View style={styles.dividerRow}>
-          <View
-            style={[styles.dividerLine, { backgroundColor: colors.border }]}
-          />
-          <Text
-            style={[
-              styles.dividerText,
-              { color: colors.textMuted, fontFamily: fonts.body },
-            ]}
-          >
-            or
-          </Text>
-          <View
-            style={[styles.dividerLine, { backgroundColor: colors.border }]}
-          />
-        </View>
+        {showGoogle && (
+          <>
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.border }]}
+              />
+              <Text
+                style={[
+                  styles.dividerText,
+                  { color: colors.textMuted, fontFamily: fonts.body },
+                ]}
+              >
+                or
+              </Text>
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.border }]}
+              />
+            </View>
 
-        {/* Sign in with Apple — iOS only, shown first per Apple HIG */}
-        {Platform.OS === "ios" && (
-          <TouchableOpacity
-            style={[
-              styles.socialBtn,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              },
-              (loading || googleLoading || appleLoading) && { opacity: 0.6 },
-            ]}
-            onPress={handleAppleSignIn}
-            disabled={appleLoading || loading || googleLoading}
-            activeOpacity={0.8}
-            accessibilityLabel="Sign in with Apple"
-            accessibilityRole="button"
-          >
-            <Ionicons name="logo-apple" size={22} color={colors.text} />
-            <Text
+            {/* Google OAuth */}
+            <TouchableOpacity
               style={[
-                styles.socialBtnText,
-                { color: colors.text, fontFamily: fonts.bodyMedium },
+                styles.socialBtn,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  marginBottom: Spacing[7],
+                },
+                (loading || googleLoading) && { opacity: 0.6 },
               ]}
+              onPress={handleGoogleSignIn}
+              disabled={googleLoading || loading}
+              activeOpacity={0.8}
+              accessibilityLabel="Sign in with Google"
+              accessibilityRole="button"
             >
-              {appleLoading ? "Signing in…" : "Continue with Apple"}
-            </Text>
-          </TouchableOpacity>
+              {!googleLoading && (
+                <Image
+                  source={require("@/assets/images/google-g.png")}
+                  style={styles.socialIcon}
+                  contentFit="contain"
+                />
+              )}
+              <Text
+                style={[
+                  styles.socialBtnText,
+                  { color: colors.text, fontFamily: fonts.bodyMedium },
+                ]}
+              >
+                {googleLoading ? "Signing in…" : "Continue with Google"}
+              </Text>
+            </TouchableOpacity>
+          </>
         )}
-
-        {/* Google OAuth */}
-        <TouchableOpacity
-          style={[
-            styles.socialBtn,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              marginBottom: Spacing[7],
-            },
-            (loading || googleLoading) && { opacity: 0.6 },
-          ]}
-          onPress={handleGoogleSignIn}
-          disabled={googleLoading || loading}
-          activeOpacity={0.8}
-          accessibilityLabel="Sign in with Google"
-          accessibilityRole="button"
-        >
-          {!googleLoading && (
-            <Image
-              source={require("@/assets/images/google-g.png")}
-              style={styles.socialIcon}
-              contentFit="contain"
-            />
-          )}
-          <Text
-            style={[
-              styles.socialBtnText,
-              { color: colors.text, fontFamily: fonts.bodyMedium },
-            ]}
-          >
-            {googleLoading ? "Signing in…" : "Continue with Google"}
-          </Text>
-        </TouchableOpacity>
 
         {/* Terms */}
         <Text
@@ -547,7 +480,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
 
-  // Shared style for all social sign-in buttons (Apple + Google)
   socialBtn: {
     flexDirection: "row",
     alignItems: "center",

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "344159180697",
+    "project_id": "satvik-salaad",
+    "storage_bucket": "satvik-salaad.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:344159180697:android:32ea68d1c8ff7d2fe16508",
+        "android_client_info": {
+          "package_name": "com.infynixlabs.satviksalaad"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBGmxguT74SeXgnCcYGrH_AtQjB8pVKXI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

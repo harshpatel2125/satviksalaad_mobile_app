@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MenuRow, SettingsSection } from '@/components/screens/profile/settings-section';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { CardEdge, FontSize, Radius, Shadows, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { trackScreenOpened } from '@/lib/analytics';
 import { useTheme } from '@/hooks/use-theme';
 import { openMap } from '@/lib/contact-actions';
@@ -82,6 +83,7 @@ export default function MSupport() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
+          column(),
           styles.content,
           { paddingBottom: insets.bottom + Spacing[5] },
         ]}

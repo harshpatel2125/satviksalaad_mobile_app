@@ -21,6 +21,7 @@ import { categoryInfo, countOf } from '@/lib/subscription-view';
 import type { Categories, CategoryLeft, Subscription } from '@/types/api';
 
 import { FontSize, Spacing } from "@/constants/theme";
+import { column } from '@/constants/layout';
 import { useAlert } from "@/context/alert";
 import { useAuth } from '@/context/auth';
 import { useQueryFocusRefetch } from "@/hooks/useQueryFocusRefetch";
@@ -200,6 +201,7 @@ export default function ProfileScreen() {
       <View
         style={[
           styles.topBar,
+          column(),
           {
             backgroundColor: colors.background,
             paddingTop: insets.top + (Platform.OS === "android" ? 12 : 0),
@@ -228,6 +230,7 @@ export default function ProfileScreen() {
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={[
+            column(),
             styles.content,
             { paddingBottom: Spacing[5] },
           ]}

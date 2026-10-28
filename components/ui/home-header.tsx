@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassView } from '@/components/glass-view';
 import { Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useAuth } from '@/context/auth';
 import { useThemePreference } from '@/context/theme-preference';
 import { useTheme } from '@/hooks/use-theme';
@@ -76,7 +77,7 @@ export function HomeHeader({ scrollY, onBellPress, hasBellDot = true }: HomeHead
         />
       </View>
 
-      <View style={styles.content}>
+      <View style={[styles.content, column()]}>
         <View style={styles.row}>
           <View style={styles.brandRow}>
             <Image

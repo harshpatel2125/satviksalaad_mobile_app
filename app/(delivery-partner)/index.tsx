@@ -19,6 +19,7 @@ import DeliveryRow from '@/components/delivery-partner/DeliveryRow';
 import FilterSheet from '@/components/delivery-partner/FilterSheet';
 import { useAlert } from '@/context/alert';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { deliveryPartnerApi } from '@/lib/api';
 import { useDietaryOptions } from '@/lib/dietary-options';
@@ -259,7 +260,7 @@ export default function DeliveryPartnerHomeScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top + Spacing[3] }]}>
+    <View style={[styles.container, column(), { backgroundColor: colors.background, paddingTop: insets.top + Spacing[3] }]}>
       {/* Covers the header only: wrapping the FlatList in a tap-to-dismiss view
           competes with its scroll gesture and stalls scrolling. */}
       <Pressable onPress={Keyboard.dismiss}>

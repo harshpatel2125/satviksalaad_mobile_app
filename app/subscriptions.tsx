@@ -16,6 +16,7 @@ import { SubscriptionRow } from '@/components/screens/subscriptions/subscription
 import { Skeleton } from '@/components/skeleton';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useQueryFocusRefetch } from '@/hooks/useQueryFocusRefetch';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/context/auth';
@@ -117,7 +118,7 @@ export default function SubscriptionsScreen() {
       />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.content, { paddingTop: Spacing[3], paddingBottom: Spacing[5] }]}
+        contentContainerStyle={[column(), styles.content, { paddingTop: Spacing[3], paddingBottom: Spacing[5] }]}
         refreshControl={
           <RefreshControl
             refreshing={isManualRefreshing}

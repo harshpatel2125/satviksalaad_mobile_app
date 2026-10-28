@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/auth';
 import { profileApi } from '@/lib/api';
 import { FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
+import { NARROW_WIDTH, column } from '@/constants/layout';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function NameScreen() {
@@ -63,6 +64,7 @@ export default function NameScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
           contentContainerStyle={[
+            column(NARROW_WIDTH),
             styles.scroll,
             { paddingTop: insets.top + Spacing[8], paddingBottom: insets.bottom + Spacing[6] },
           ]}

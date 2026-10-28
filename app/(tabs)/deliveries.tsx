@@ -11,6 +11,7 @@ import { deliveryDetailParams, useSubscriptions } from '@/components/screens/sub
 import { DeliveriesSkeleton } from '@/components/skeletons/deliveries-skeleton';
 import { Text } from '@/components/ui/text';
 import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useAuth } from '@/context/auth';
 import { useQueryFocusRefetch } from '@/hooks/useQueryFocusRefetch';
 import { useTheme } from '@/hooks/use-theme';
@@ -136,7 +137,7 @@ export default function DeliveriesScreen() {
   }
 
   const header = (
-    <View style={[s.header, { backgroundColor: colors.background, paddingTop: insets.top + (Platform.OS === 'android' ? 12 : 0) }]}>
+    <View style={[s.header, column(), { backgroundColor: colors.background, paddingTop: insets.top + (Platform.OS === 'android' ? 12 : 0) }]}>
       <Text style={[s.pageTitle, { color: colors.text, fontFamily: fonts.display }]}>Deliveries</Text>
     </View>
   );
@@ -146,7 +147,7 @@ export default function DeliveriesScreen() {
     return (
       <View style={[s.root, { backgroundColor: colors.background }]}>
         {header}
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: Spacing[3], paddingBottom: Spacing[5] }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[column(), { paddingTop: Spacing[3], paddingBottom: Spacing[5] }]}>
           <DeliveriesSkeleton />
         </ScrollView>
       </View>
@@ -179,7 +180,7 @@ export default function DeliveriesScreen() {
       {header}
       <ScrollView
         style={s.scroll}
-        contentContainerStyle={[s.content, { paddingTop: Spacing[3], paddingBottom: Spacing[5] }]}
+        contentContainerStyle={[column(), s.content, { paddingTop: Spacing[3], paddingBottom: Spacing[5] }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={isManualRefreshing} onRefresh={() => void handleManualRefresh()} tintColor={colors.primary} />

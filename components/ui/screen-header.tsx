@@ -4,6 +4,7 @@ import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui/text';
+import { column, READING_WIDTH } from '@/constants/layout';
 import { FontSize, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -34,6 +35,8 @@ interface ScreenHeaderProps {
   subtitle?: string;
   /** Optional element shown on the right side (e.g. a date pill). */
   right?: React.ReactNode;
+  /** Match the screen's content column on wide screens. */
+  maxWidth?: number;
 }
 
 export function ScreenHeader({
@@ -41,37 +44,37 @@ export function ScreenHeader({
   onBack,
   subtitle,
   right,
+  maxWidth = READING_WIDTH,
 }: ScreenHeaderProps) {
   const { colors, fonts } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
     <View
-      style={[
-        styles.bar,
-        {
-          paddingTop: insets.top + (Platform.OS === "android" ? 12 : 0),
-          backgroundColor: colors.background,
-        },
-      ]}
+      style={{
+        paddingTop: insets.top + (Platform.OS === "android" ? 12 : 0),
+        backgroundColor: colors.background,
+      }}
     >
-      <BackButton onPress={onBack} />
+      <View style={[styles.bar, column(maxWidth)]}>
+        <BackButton onPress={onBack} />
 
-      <View style={styles.titleWrap}>
-        <Text
-          style={[styles.title, { color: colors.text, fontFamily: fonts.display }]}
-          numberOfLines={1}
-        >
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text style={[styles.subtitle, { color: colors.textMuted, fontFamily: fonts.body }]}>
-            {subtitle}
+        <View style={styles.titleWrap}>
+          <Text
+            style={[styles.title, { color: colors.text, fontFamily: fonts.display }]}
+            numberOfLines={1}
+          >
+            {title}
           </Text>
-        ) : null}
-      </View>
+          {subtitle ? (
+            <Text style={[styles.subtitle, { color: colors.textMuted, fontFamily: fonts.body }]}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
 
-      {right != null ? <View style={styles.right}>{right}</View> : null}
+        {right != null ? <View style={styles.right}>{right}</View> : null}
+      </View>
     </View>
   );
 }

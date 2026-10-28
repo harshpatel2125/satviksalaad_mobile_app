@@ -27,6 +27,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Text } from '@/components/ui/text';
 import { Brand, CardEdge, FontSize, LineHeight, Radius, Spacing } from '@/constants/theme';
+import { column, SHEET_WIDTH } from '@/constants/layout';
 import { useAuth } from '@/context/auth';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, cafeApi } from '@/lib/api';
@@ -289,7 +290,7 @@ export default function CafeMenuScreen() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: count > 0 ? Spacing[6] : insets.bottom + Spacing[6] }}
+            contentContainerStyle={[column(), { paddingBottom: count > 0 ? Spacing[6] : insets.bottom + Spacing[6] }]}
           >
             <View style={s.top}>
               <View style={[s.store, { backgroundColor: colors.surface }, CardEdge]}>
@@ -741,7 +742,7 @@ function SizeSheet({
     <Modal visible={!!choice} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={s.backdrop} onPress={onClose} accessibilityLabel="Close" />
       {choice ? (
-        <View style={[s.sizeSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + Spacing[4] }]}>
+        <View style={[s.sizeSheet, column(SHEET_WIDTH), { backgroundColor: colors.surface, paddingBottom: insets.bottom + Spacing[4] }]}>
           <View style={[s.grabber, { backgroundColor: colors.border }]} />
           <View style={s.nameRow}>
             <Text style={[s.sizeTitle, { color: colors.text, fontFamily: fonts.display }]}>{choice.item.name}</Text>

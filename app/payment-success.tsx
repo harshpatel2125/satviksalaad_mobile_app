@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatDay } from '@/lib/subscription-view';
 import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
+import { column, NARROW_WIDTH } from '@/constants/layout';
 import { trackPurchase } from '@/lib/analytics';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -60,7 +61,7 @@ export default function PaymentSuccessScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      <View style={styles.content}>
+      <View style={[styles.content, column(NARROW_WIDTH)]}>
         {/* Success icon */}
         <View style={[styles.iconCircle, { backgroundColor: colors.successBg }]}>
           <Ionicons name="checkmark-circle" size={72} color={colors.success} />

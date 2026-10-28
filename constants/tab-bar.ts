@@ -24,6 +24,9 @@ export const TAB_BOTTOM_PAD = Platform.OS === 'ios' ? 2 : 10;
 
 export const TAB_TOP_RADIUS = 22;
 
+/** Width the tabs spread across on tablets. */
+export const TAB_BAR_MAX_WIDTH = 640;
+
 export const tabBarBaseStyle = {
   borderTopWidth: StyleSheet.hairlineWidth,
   paddingTop: 6,

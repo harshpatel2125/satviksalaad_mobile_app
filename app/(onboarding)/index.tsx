@@ -18,13 +18,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import type { ThemeColors } from '@/constants/theme';
 import { FontWeight, Radius } from '@/constants/theme';
+import { column } from '@/constants/layout';
 import { useAuth } from '@/context/auth';
 import { useTheme } from '@/hooks/use-theme';
 import { trackOnboardingCompleted } from '@/lib/analytics';
 import { DINNER_SLOT, LUNCH_SLOT, cutoffLabel } from '@/lib/delivery-rules';
 import { formatTimeRange, useSlots } from '@/lib/slots';
 
-const { width: W, height: H } = Dimensions.get('window');
+const ONBOARDING_WIDTH = 520;
+const screen = Dimensions.get('window');
+// Sized for a phone-width column, so tablets in either orientation get the same proportions.
+const W = Math.min(screen.width, ONBOARDING_WIDTH);
+const H = screen.height;
 const SP = { damping: 24, stiffness: 220 } as const;
 const SP_FAST = { damping: 28, stiffness: 320 } as const;
 
@@ -36,7 +41,8 @@ const rf = (n: number) => Math.round(n * Math.min(W / 390, 1.35));
 //   < 800dp  (Poco F1, SE-class): −15% → 47
 //   800–930dp (iPhone 14, most Android): standard → 55
 //   > 930dp  (Pro Max, iPhone 16 Pro Max): −17% → 46
-const ILLUS_FLEX = H < 800 ? Math.round(55 * 0.85) : H > 930 ? Math.round(55 * 0.83) : 55;
+// Tablets (≥ 1000dp) give the extra height to the illustration, not to a gap above the buttons.
+const ILLUS_FLEX = H >= 1000 ? 64 : H < 800 ? Math.round(55 * 0.85) : H > 930 ? Math.round(55 * 0.83) : 55;
 const BODY_FLEX = 100 - ILLUS_FLEX;
 
 const ILLUS_GRADIENT = { light: ['#f0f6f2', '#e6f0e9'], dark: ['#1e2a24', '#17211c'] } as const;
@@ -571,6 +577,7 @@ export default function OnboardingScreen() {
         <View
           style={[
             s.body,
+            column(ONBOARDING_WIDTH),
             {
               backgroundColor: colors.background,
               paddingBottom: Math.max(insets.bottom + 16, 20),

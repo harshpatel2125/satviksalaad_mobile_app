@@ -22,6 +22,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { SHEET_WIDTH, column } from '@/constants/layout';
 import { useAuth } from '@/context/auth';
 import { useTheme } from '@/hooks/use-theme';
 import { auth, profileApi } from '@/lib/api';
@@ -264,6 +265,7 @@ export function ProfileCompletionSheet({
           exiting={SlideOutDown.duration(200)}
           style={[
             styles.sheet,
+            column(SHEET_WIDTH),
             keyboardStyle,
             {
               backgroundColor: colors.surface,
