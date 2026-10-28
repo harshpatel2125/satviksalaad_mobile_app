@@ -118,7 +118,7 @@
       "@react-native-firebase/app",
       "@react-native-firebase/crashlytics",
       [
-        "@hot-updater/react-native",
+        "@hot-updater/expo",
         {
           "channel": "production"
         }

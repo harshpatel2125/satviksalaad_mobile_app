@@ -1,4 +1,3 @@
-import { HotUpdater } from "@hot-updater/react-native";
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import {
   Figtree_400Regular,
@@ -28,6 +27,7 @@ import { ThemePreferenceProvider, useThemePreference } from '@/context/theme-pre
 import { NetworkFallback } from "@/components/network-fallback";
 import { UpdateRequired } from "@/components/update-required";
 import { getAppConfig, loadAppConfig } from "@/lib/app-config";
+import { hotUpdater } from "@/lib/hot-updater";
 import { isVersionBelow } from "@/lib/version";
 import { trackScreenView } from "@/lib/analytics";
 import { parseIncomingUrl } from "@/lib/deep-links";
@@ -495,7 +495,4 @@ function RootLayout() {
   );
 }
 
-export default HotUpdater.wrap({
-  baseURL: async () => (await loadAppConfig()).otaUrl,
-  updateStrategy: "appVersion",
-})(RootLayout);
+export default hotUpdater.wrap({ updateStrategy: "appVersion" })(RootLayout);

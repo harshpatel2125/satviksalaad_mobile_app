@@ -15,14 +15,21 @@
     "preview": {
       "distribution": "internal",
       "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://satviksalaad.com"
+        "EXPO_PUBLIC_API_URL": "https://satviksalaad.com",
+        "EXPO_PUBLIC_OTA_URL": "https://satviksalaad-hot-updater.infynixlabs-com.workers.dev",
+        "EXPO_PUBLIC_HOT_UPDATER_API_KEY": "pdw1flWLFv9WrxH0-RLqTaTcoUm2bCEOTR9EDodhCzc"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://satviksalaad.com"
+        "EXPO_PUBLIC_API_URL": "https://satviksalaad.com",
+        "EXPO_PUBLIC_OTA_URL": "https://satviksalaad-hot-updater.infynixlabs-com.workers.dev",
+        "EXPO_PUBLIC_HOT_UPDATER_API_KEY": "pdw1flWLFv9WrxH0-RLqTaTcoUm2bCEOTR9EDodhCzc"
       }
     }
   }
