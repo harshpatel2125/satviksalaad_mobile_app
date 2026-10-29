@@ -20,7 +20,9 @@ function addressLabel(a: DeliveryAddress): string {
 }
 
 export function addressLine(a: DeliveryAddress): string {
-  return [a.full_address, a.area, a.city, a.pincode].filter(Boolean).join(', ');
+  // Addresses saved in the app already end with their area.
+  const area = a.area && !a.full_address.includes(a.area) ? a.area : null;
+  return [a.full_address, area, a.city, a.pincode].filter(Boolean).join(', ');
 }
 
 const sameDays = (a: readonly string[], b: readonly string[]) => [...a].sort().join() === [...b].sort().join();

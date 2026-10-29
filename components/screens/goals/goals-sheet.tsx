@@ -78,88 +78,90 @@ export function GoalsSheet({ visible, firstName, onDismiss }: GoalsSheetProps) {
         </Animated.View>
 
         <View style={s.bottom} pointerEvents="box-none">
-          <GestureDetector gesture={drag}>
-            <Animated.View
-              style={[
-                s.sheet,
-                column(SHEET_WIDTH),
-                { backgroundColor: colors.surface, paddingBottom: Math.max(insets.bottom, Spacing[4]) + Spacing[2] },
-                sheetStyle,
-              ]}
-            >
-              <View style={[s.grabber, { backgroundColor: colors.border }]} />
-              <TouchableOpacity
-                onPress={onDismiss}
-                style={[s.close, { backgroundColor: colors.surface2 }]}
-                hitSlop={8}
-                accessibilityLabel="Close"
+          {/* The width cap sits on a plain View: on iOS the gesture detector's wrapper ignores alignSelf. */}
+          <View style={column(SHEET_WIDTH)}>
+            <GestureDetector gesture={drag}>
+              <Animated.View
+                style={[
+                  s.sheet,
+                  { backgroundColor: colors.surface, paddingBottom: Math.max(insets.bottom, Spacing[4]) + Spacing[2] },
+                  sheetStyle,
+                ]}
               >
-                <Ionicons name="close" size={18} color={colors.text} />
-              </TouchableOpacity>
-
-              <View style={s.head}>
-                <ProgressRing
-                  size={64}
-                  thickness={7}
-                  progress={goals.length ? doneCount / goals.length : 0}
-                  color={colors.primary}
-                  trackColor={colors.sageSoft}
-                  holeColor={colors.surface}
+                <View style={[s.grabber, { backgroundColor: colors.border }]} />
+                <TouchableOpacity
+                  onPress={onDismiss}
+                  style={[s.close, { backgroundColor: colors.surface2 }]}
+                  hitSlop={8}
+                  accessibilityLabel="Close"
                 >
-                  <Text style={[s.ringText, { color: colors.text, fontFamily: fonts.bodyBold }]}>
-                    {doneCount}/{goals.length}
-                  </Text>
-                </ProgressRing>
-                <View style={s.headText}>
-                  <Text style={[s.label, { color: colors.primary, fontFamily: fonts.bodyBold }]}>TODAY · {weekday}</Text>
-                  <Text style={[s.greeting, { color: colors.text, fontFamily: fonts.display }]} numberOfLines={1}>
-                    {greeting}
-                  </Text>
-                  {streak > 0 ? (
-                    <View style={[s.streak, { backgroundColor: colors.accentBg }]}>
-                      <Ionicons name="flame" size={13} color={colors.accent} />
-                      <Text style={[s.streakText, { color: colors.accent, fontFamily: fonts.bodySemibold }]}>
-                        {streak}-day streak
-                      </Text>
-                    </View>
-                  ) : null}
+                  <Ionicons name="close" size={18} color={colors.text} />
+                </TouchableOpacity>
+
+                <View style={s.head}>
+                  <ProgressRing
+                    size={64}
+                    thickness={7}
+                    progress={goals.length ? doneCount / goals.length : 0}
+                    color={colors.primary}
+                    trackColor={colors.sageSoft}
+                    holeColor={colors.surface}
+                  >
+                    <Text style={[s.ringText, { color: colors.text, fontFamily: fonts.bodyBold }]}>
+                      {doneCount}/{goals.length}
+                    </Text>
+                  </ProgressRing>
+                  <View style={s.headText}>
+                    <Text style={[s.label, { color: colors.primary, fontFamily: fonts.bodyBold }]}>TODAY · {weekday}</Text>
+                    <Text style={[s.greeting, { color: colors.text, fontFamily: fonts.display }]} numberOfLines={1}>
+                      {greeting}
+                    </Text>
+                    {streak > 0 ? (
+                      <View style={[s.streak, { backgroundColor: colors.accentBg }]}>
+                        <Ionicons name="flame" size={13} color={colors.accent} />
+                        <Text style={[s.streakText, { color: colors.accent, fontFamily: fonts.bodySemibold }]}>
+                          {streak}-day streak
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
-              </View>
 
-              <View>
-                {shown.map((goal, index) => (
-                  <GoalRow
-                    key={goal.id}
-                    goal={goal}
-                    done={isDone(goal)}
-                    water={water}
-                    first={index === 0}
-                    onToggle={() => toggle(goal.id)}
-                    onAddWater={() => setWater(water + 1)}
-                    onNavigate={onDismiss}
-                  />
-                ))}
-              </View>
+                <View>
+                  {shown.map((goal, index) => (
+                    <GoalRow
+                      key={goal.id}
+                      goal={goal}
+                      done={isDone(goal)}
+                      water={water}
+                      first={index === 0}
+                      onToggle={() => toggle(goal.id)}
+                      onAddWater={() => setWater(water + 1)}
+                      onNavigate={onDismiss}
+                    />
+                  ))}
+                </View>
 
-              <HabitTipCard />
+                <HabitTipCard />
 
-              <TouchableOpacity
-                style={[s.primary, { backgroundColor: colors.primary }]}
-                activeOpacity={0.85}
-                onPress={() => {
-                  onDismiss();
-                  router.push('/goals');
-                }}
-              >
-                <Text style={[s.primaryText, { color: colors.textOnPrimary, fontFamily: fonts.bodySemibold }]}>
-                  See all of today&apos;s goals
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={onDismiss} hitSlop={8} style={s.later}>
-                <Text style={[s.laterText, { color: colors.textMuted, fontFamily: fonts.bodySemibold }]}>Not today</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          </GestureDetector>
+                <TouchableOpacity
+                  style={[s.primary, { backgroundColor: colors.primary }]}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    onDismiss();
+                    router.push('/goals');
+                  }}
+                >
+                  <Text style={[s.primaryText, { color: colors.textOnPrimary, fontFamily: fonts.bodySemibold }]}>
+                    See all of today&apos;s goals
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={onDismiss} hitSlop={8} style={s.later}>
+                  <Text style={[s.laterText, { color: colors.textMuted, fontFamily: fonts.bodySemibold }]}>Not today</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            </GestureDetector>
+          </View>
         </View>
       </GestureHandlerRootView>
     </Modal>

@@ -685,6 +685,7 @@ export interface AppSettings {
   gstin?:             string | null;
   fssai?:             string | null;
   showBuiltByCard:    boolean;
+  storeReviewMode?:   boolean;
 }
 
 export interface AppSettingsResponse {

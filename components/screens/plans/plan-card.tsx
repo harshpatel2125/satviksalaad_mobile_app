@@ -206,7 +206,7 @@ export function HeroPlanCard({ plan, isSelected, onSelect, unavailable, enterDel
         {/* Price display */}
         <View style={heroStyles.priceRow}>
           <Text style={[heroStyles.priceMain, { fontFamily: fonts.display }]}>
-            ₹{planRs}
+            ₹{planRs.toLocaleString('en-IN')}
           </Text>
           <View style={heroStyles.priceRight}>
             <Text style={[heroStyles.priceLabel, { fontFamily: fonts.bodyMedium }]}>
@@ -371,7 +371,7 @@ export function StandardPlanCard({ plan, isSelected, onSelect, unavailable, ente
           </View>
           <View style={stdStyles.priceCol}>
             <Text style={[stdStyles.price, { color: isSelected ? colors.primaryDark : colors.text, fontFamily: fonts.display }]}>
-              ₹{planRs}
+              ₹{planRs.toLocaleString('en-IN')}
             </Text>
             <Text style={[stdStyles.priceSub, { color: colors.textMuted, fontFamily: fonts.body }]}>{gstNote ?? 'total'}</Text>
           </View>
@@ -462,7 +462,7 @@ export function FruitPlanCard({ plan, isSelected, onSelect, unavailable, enterDe
           </View>
           <View style={fruitStyles.priceCol}>
             <Text style={[fruitStyles.price, { color: amberDark, fontFamily: fonts.display }]}>
-              ₹{planRs}
+              ₹{planRs.toLocaleString('en-IN')}
             </Text>
             <Text style={[fruitStyles.priceSub, { color: amberMeta, fontFamily: fonts.body }]}>{gstNote ?? 'total'}</Text>
           </View>

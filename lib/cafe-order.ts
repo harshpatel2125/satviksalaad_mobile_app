@@ -279,8 +279,8 @@ export interface StartedCafeOrder {
 
 const oneLine = (text: string) => text.trim().replace(/\s*\n\s*/g, ', ');
 
-/** Plain-text WhatsApp message for a validated order. */
-export function buildOrderMessage(lines: CartLine[], order: OrderDetails, gstRateBps = 0): string {
+/** Plain-text WhatsApp message for a validated order; `askForPayment` adds the request for payment details. */
+export function buildOrderMessage(lines: CartLine[], order: OrderDetails, gstRateBps = 0, askForPayment = true): string {
   const rate = gstRateBps > 0 ? formatGstRate(gstRateBps) : null;
   const delivery = order.fulfilment === 'delivery';
   const phone = indianMobile(order.phone);
@@ -305,10 +305,14 @@ export function buildOrderMessage(lines: CartLine[], order: OrderDetails, gstRat
     `Items total: ${hasMrp ? `${total} + MRP items` : total}`,
     ...(rate ? [`Plus ${rate} GST.`] : []),
     ...(order.notes.trim() ? [`Notes: ${oneLine(order.notes)}`] : []),
-    '',
-    delivery
-      ? 'Payment in advance: please share the payment details. Delivery charges, if any, to be confirmed on WhatsApp.'
-      : 'Payment in advance: please share the payment details.',
+    ...(askForPayment
+      ? [
+          '',
+          delivery
+            ? 'Payment in advance: please share the payment details. Delivery charges, if any, to be confirmed on WhatsApp.'
+            : 'Payment in advance: please share the payment details.',
+        ]
+      : []),
   ];
   return message.join('\n');
 }

@@ -72,7 +72,7 @@ export function CafeCard() {
 
         <TouchableOpacity
           style={[s.btn, s.orderBtn, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/cafe-menu' as Href)}
+          onPress={() => router.navigate('/(tabs)/cafe' as Href)}
           activeOpacity={0.85}
           accessibilityRole="button"
         >

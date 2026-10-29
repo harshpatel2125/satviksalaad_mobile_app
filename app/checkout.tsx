@@ -4,6 +4,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -37,6 +38,8 @@ import { getAppConfig } from '@/lib/app-config';
 import { isPhoneEmail, phoneFromEmail } from '@/lib/phone-email';
 import { DEFAULT_DELIVERY_DAYS } from '@/lib/delivery-rules';
 import { BASE_URL } from '@/lib/base-url';
+import { useSupportContact } from '@/lib/support-contact';
+import { useWhatsAppOrdering } from '@/lib/whatsapp-ordering';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -155,6 +158,8 @@ export default function CheckoutScreen() {
   const needsPhone = !effectivePhone;
   const needsName  = !profile?.full_name;
   const profileComplete = !needsPhone && !needsName;
+  const whatsappOrdering = useWhatsAppOrdering();
+  const { whatsappUrl: supportWhatsappUrl, phoneDisplay: supportPhoneDisplay } = useSupportContact();
 
   const trackedCheckout = useRef(false);
   useEffect(() => {
@@ -257,6 +262,38 @@ export default function CheckoutScreen() {
     setCouponError('');
   }
 
+  // ── WhatsApp order (no payment in the app) ──────────────────────────────
+
+  function handleWhatsAppOrder() {
+    if (!plan) return;
+    if (!supportWhatsappUrl) {
+      showAlert('WhatsApp unavailable', `Please call us on ${supportPhoneDisplay} to place your order.`);
+      return;
+    }
+    const styleLabel = plan.style_choice ? styleOptions.find((o) => o.key === planStyle)?.label : null;
+    const lines = [
+      `Hi Satvik Salaad! I'd like to place an order.`,
+      ``,
+      `*Order details*`,
+      `Plan: ${plan.name} (${countOf(plan.bowls_count, plan.unit)})`,
+      ...(styleLabel ? [`Style: ${styleLabel}`] : []),
+      ...(preview ? [`Starts: ${formatDay(preview.starts_on)}`] : []),
+      `Delivery days: ${daysText(shownDays)}`,
+      `Time: ${slotLabel(shownSlot, slots)}`,
+      ...(shared?.address ?? address?.full_address ? [`Address: ${shared?.address ?? address?.full_address}`] : []),
+      ``,
+      `Subtotal: ₹${baseRs}`,
+      ...(gst.taxPaise > 0 ? [`GST (${formatGstRate(gstRateBps)}): ${rupeesFromPaise(gst.taxPaise)}`] : []),
+      `Total: ₹${finalRs}`,
+      ``,
+      `Name: ${profile?.full_name ?? ''}`,
+      `Mobile: ${effectivePhone ?? ''}`,
+    ];
+    Linking.openURL(`${supportWhatsappUrl}?text=${encodeURIComponent(lines.join('\n'))}`).catch(() => {
+      showAlert('WhatsApp not found', 'Please install WhatsApp and try again.');
+    });
+  }
+
   // ── Pay ───────────────────────────────────────────────────────────────────
 
   async function handlePay() {
@@ -281,6 +318,7 @@ export default function CheckoutScreen() {
 
     setPaying(true);
     let orderId = '';
+    let sheetOpened = false;
     let finalAmountPaise = 0;
     const dietaryPreferences = [
       ...(plan.style_choice && planStyle !== 'regular' ? [planStyle] : []),
@@ -326,6 +364,7 @@ export default function CheckoutScreen() {
         return;
       }
 
+      sheetOpened = true;
       const paymentData = await RazorpayCheckout.open({
         key: getAppConfig().razorpayKeyId,
         amount: finalAmountPaise,
@@ -380,6 +419,8 @@ export default function CheckoutScreen() {
       } else {
         const reason = razorpayErr.description ?? (err instanceof Error ? err.message : 'unknown');
         trackPaymentFailed(plan.id, Math.round(finalAmountPaise / 100), reason);
+        // Before the payment sheet nothing was paid, and an open order would block the retry.
+        if (orderId && !sheetOpened) paymentsApi.cancelOrder(orderId).catch(() => {});
         showAlert('Payment failed', razorpayErr.description ?? (err instanceof Error ? err.message : 'Payment failed. Please try again.'));
       }
     } finally {
@@ -666,7 +707,7 @@ export default function CheckoutScreen() {
         ) : null}
 
         {/* ── Phone required card (shown first) ────────────────────────────── */}
-        {needsPhone && (
+        {needsPhone && !whatsappOrdering && (
           <TouchableOpacity
             style={[
               styles.card,
@@ -806,7 +847,7 @@ export default function CheckoutScreen() {
         )}
 
         {/* ── Promo code ────────────────────────────────────────────────────── */}
-        <View
+        {!whatsappOrdering && <View
           style={[
             styles.card,
             {
@@ -1011,7 +1052,7 @@ export default function CheckoutScreen() {
               ) : null}
             </View>
           )}
-        </View>
+        </View>}
 
         {styleChoices.length > 0 && (
           <View
@@ -1076,7 +1117,7 @@ export default function CheckoutScreen() {
         )}
 
         {/* ── Cooking notes ─────────────────────────────────────────────────── */}
-        <View
+        {!whatsappOrdering && <View
           style={[
             styles.card,
             {
@@ -1153,7 +1194,7 @@ export default function CheckoutScreen() {
             onChangeText={setSpecialInstructions}
             textAlignVertical="top"
           />
-        </View>
+        </View>}
 
         {/* ── Price breakdown ───────────────────────────────────────────────── */}
         <View
@@ -1277,6 +1318,15 @@ export default function CheckoutScreen() {
           </Text>
           .
         </Text>
+
+        {whatsappOrdering && (
+          <View style={styles.whatsappNote}>
+            <Ionicons name="logo-whatsapp" size={13} color={colors.textMuted} />
+            <Text style={{ fontSize: FontSize.xs, color: colors.textMuted, fontFamily: fonts.body }}>
+              Our team will confirm and place your order on WhatsApp
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       {/* ── Sticky pay bar ────────────────────────────────────────────────── */}
@@ -1289,7 +1339,7 @@ export default function CheckoutScreen() {
                 { color: colors.textMuted, fontFamily: fonts.body },
               ]}
             >
-              Total due today
+              {whatsappOrdering ? 'Total' : 'Total due today'}
             </Text>
             {loading ? (
               <Skeleton
@@ -1309,7 +1359,21 @@ export default function CheckoutScreen() {
               </Text>
             )}
           </View>
-          {!profileComplete ? (
+          {whatsappOrdering ? (
+            <TouchableOpacity
+              style={[styles.payBtn, { backgroundColor: refusal ? colors.textMuted : '#25D366' }]}
+              onPress={handleWhatsAppOrder}
+              disabled={loading || !!refusal}
+              activeOpacity={0.85}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing[2] }}>
+                <Ionicons name="logo-whatsapp" size={16} color="#fff" />
+                <Text style={[styles.payBtnText, { fontFamily: fonts.bodySemibold }]}>
+                  Contact us to order
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ) : !profileComplete ? (
             <TouchableOpacity
               style={[styles.payBtn, { backgroundColor: colors.primary }]}
               onPress={() => setSheetVisible(true)}
@@ -1461,6 +1525,7 @@ const styles = StyleSheet.create({
   firstChoiceValue: { fontSize: FontSize.sm, marginTop: 1 },
   deliveryNote: { fontSize: FontSize.xs, lineHeight: FontSize.xs * 1.5, marginTop: -2, marginBottom: 4 },
   termsNote: { fontSize: FontSize.xs, textAlign: 'center', marginHorizontal: Spacing[5], marginTop: Spacing[3] },
+  whatsappNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: Spacing[3], marginHorizontal: Spacing[5] },
   refusalRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing[2] },
   refusalText: { flex: 1, fontSize: FontSize.sm, lineHeight: FontSize.sm * 1.5 },
 

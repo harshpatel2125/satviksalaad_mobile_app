@@ -423,7 +423,7 @@ export default function HomeScreen() {
 
         <VideoStrip
           onOpen={(video) => router.push({ pathname: "/video-player", params: { id: video.id } })}
-          onSeeAll={() => router.navigate("/(tabs)/videos")}
+          onSeeAll={() => router.push("/videos")}
         />
       </Animated.ScrollView>
 

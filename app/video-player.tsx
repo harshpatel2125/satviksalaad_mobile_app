@@ -278,7 +278,7 @@ export default function VideoPlayerScreen() {
     <View style={[s.root, { backgroundColor: colors.background }]}>
       <ScreenHeader
         title={video ? categoryLabel(categories, video.category) : 'Video'}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/videos'))}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/videos'))}
       />
 
       {!video ? (

@@ -300,9 +300,9 @@ export default function ProfileScreen() {
 
           <SettingsSection title="More from Satvik Salaad">
             <MenuRow
-              icon="cafe-outline"
-              label="Café menu"
-              onPress={() => router.push("/cafe-menu")}
+              icon="play-circle-outline"
+              label="Videos"
+              onPress={() => router.push("/videos")}
             />
             <MenuRow
               icon="nutrition-outline"

@@ -418,13 +418,13 @@ function RootLayoutInner() {
         <Stack.Screen name="delivery-detail" />
         <Stack.Screen name="meal-detail" />
         <Stack.Screen name="video-player" />
+        <Stack.Screen name="videos" />
         <Stack.Screen name="subscriptions" />
         <Stack.Screen name="addresses" />
         <Stack.Screen name="add-address" />
         <Stack.Screen name="edit-address" />
         <Stack.Screen name="settings" />
         <Stack.Screen name="support" />
-        <Stack.Screen name="cafe-menu" />
         <Stack.Screen name="diet-consultation" />
         <Stack.Screen name="goals" />
         <Stack.Screen name="goals-setup" />

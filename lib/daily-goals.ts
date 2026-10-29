@@ -25,7 +25,7 @@ export interface Goal {
 
 export const GOALS: readonly Goal[] = [
   { id: 'warm-water', title: 'Warm water after waking', when: 'After you wake up', short: '2 glasses, first thing', slot: 'morning', icon: 'cafe-outline', remindAt: { hour: 6, minute: 30 } },
-  { id: 'yoga', title: '15 min yoga', when: 'Before breakfast', short: '15 min, morning', slot: 'morning', icon: 'body-outline', link: { label: 'Yoga videos', href: '/(tabs)/videos' }, remindAt: { hour: 7, minute: 0 } },
+  { id: 'yoga', title: '15 min yoga', when: 'Before breakfast', short: '15 min, morning', slot: 'morning', icon: 'body-outline', link: { label: 'Yoga videos', href: { pathname: '/videos', params: { category: 'yoga' } } }, remindAt: { hour: 7, minute: 0 } },
   { id: 'water', title: 'Drink water', when: 'Through the day', short: '8 glasses', slot: 'day', icon: 'water-outline', target: 8 },
   { id: 'walk', title: '10-min walk after lunch', when: 'After lunch', short: '10 min after meals', slot: 'day', icon: 'walk-outline', remindAt: { hour: 13, minute: 30 } },
   { id: 'salad', title: 'A fresh salad', when: 'Lunch or dinner', short: 'Once a day', slot: 'day', icon: 'leaf-outline', link: { label: 'Menu', href: '/(tabs)/menu' } },

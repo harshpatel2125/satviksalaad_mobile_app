@@ -1,7 +1,6 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
-  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -16,8 +15,9 @@ import { FeaturedVideoCard, VideoCard } from '@/components/screens/videos/video-
 import { VideosSkeleton } from '@/components/skeletons/videos-skeleton';
 import { Text } from '@/components/ui/text';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { column, columnsFor, WIDE_WIDTH } from '@/constants/layout';
-import { FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
+import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useQueryFocusRefetch } from '@/hooks/useQueryFocusRefetch';
 import { useTheme } from '@/hooks/use-theme';
 import { categoryLabel, useVideos, VIDEOS_QUERY_KEY } from '@/lib/videos';
@@ -33,7 +33,9 @@ export default function VideosScreen() {
   const listWidth = Math.min(width, WIDE_WIDTH) - Spacing[5] * 2;
   const videoColumns = columnsFor(listWidth, 300, Spacing[4], 3);
   const videoWidth = (listWidth - Spacing[4] * (videoColumns - 1)) / videoColumns;
-  const [filter, setFilter] = useState<Filter>('all');
+  const { category } = useLocalSearchParams<{ category?: string }>();
+  // An unknown category falls back to 'all' below, once the categories load.
+  const [filter, setFilter] = useState<Filter>(() => (category as Filter | undefined) ?? 'all');
   const [refreshing, setRefreshing] = useState(false);
 
   const { data, isLoading, isError, refetch } = useVideos();
@@ -63,18 +65,12 @@ export default function VideosScreen() {
 
   return (
     <View style={[s.root, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          s.header,
-          column(WIDE_WIDTH),
-          { paddingTop: insets.top + (Platform.OS === 'android' ? 12 : 0) },
-        ]}
-      >
-        <Text style={[s.eyebrow, { color: colors.primary, fontFamily: fonts.bodySemibold }]}>
-          Eat well · Move well
-        </Text>
-        <Text style={[s.title, { color: colors.text, fontFamily: fonts.display }]}>Videos</Text>
-      </View>
+      <ScreenHeader
+        title="Videos"
+        subtitle="Eat well · Move well"
+        maxWidth={WIDE_WIDTH}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+      />
 
       {categories.length > 1 ? (
         <ScrollView
@@ -121,7 +117,7 @@ export default function VideosScreen() {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[column(WIDE_WIDTH), s.scroll]}
+          contentContainerStyle={[column(WIDE_WIDTH), s.scroll, { paddingBottom: insets.bottom + Spacing[6] }]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -167,21 +163,6 @@ export default function VideosScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1 },
-  header: {
-    paddingHorizontal: Spacing[5],
-    paddingBottom: 12,
-  },
-  eyebrow: {
-    fontSize: 11,
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
-    marginBottom: 3,
-  },
-  title: {
-    fontSize: FontSize['1.5xl'],
-    fontWeight: FontWeight.semibold as '600',
-    letterSpacing: -0.5,
-  },
   // ScrollView shrinks by default, which lets the list below squeeze the chips.
   chipsBar: { flexGrow: 0, flexShrink: 0 },
   chips: {

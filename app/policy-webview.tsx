@@ -42,9 +42,11 @@ export default function PolicyWebViewScreen() {
     }
   };
 
-  // Inject CSS to make the page mobile-responsive and match app style
+  // Inject CSS to make the page mobile-responsive and match app style. A page with
+  // its own viewport is already built for phones, and the image rule would shrink its logo.
   const INJECTED_CSS = `
     (function() {
+      if (document.querySelector('meta[name="viewport"]')) return;
       var meta = document.createElement('meta');
       meta.name = 'viewport';
       meta.content = 'width=device-width, initial-scale=1, maximum-scale=1';

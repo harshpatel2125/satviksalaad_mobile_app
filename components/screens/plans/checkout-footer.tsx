@@ -46,7 +46,7 @@ export function CheckoutFooter({
             { color: colors.text, fontFamily: fonts.display },
           ]}
         >
-          ₹{totalRs}
+          ₹{totalRs.toLocaleString('en-IN')}
           {gstNote ? (
             <Text style={[footerStyles.detail, { color: colors.textMuted, fontFamily: fonts.body }]}> {gstNote}</Text>
           ) : null}

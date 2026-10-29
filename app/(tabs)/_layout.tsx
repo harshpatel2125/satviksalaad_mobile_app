@@ -24,7 +24,7 @@ import { useThemePreference } from '@/context/theme-preference';
 const TAB_ROUTES: Href[] = [
   '/',
   '/menu',
-  '/videos',
+  '/cafe',
   '/deliveries',
   '/profile',
 ];
@@ -125,8 +125,8 @@ export default function TabLayout() {
             options={{ title: "Menu", tabBarIcon: icon("leaf-outline", "leaf") }}
           />
           <Tabs.Screen
-            name="videos"
-            options={{ title: "Videos", tabBarIcon: icon("play-circle-outline", "play-circle") }}
+            name="cafe"
+            options={{ title: "Café", tabBarIcon: icon("storefront-outline", "storefront") }}
           />
           <Tabs.Screen
             name="deliveries"

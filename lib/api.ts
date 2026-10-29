@@ -99,9 +99,9 @@ export async function apiFetch<T>(
   }
 
   if (res.status >= 500) {
-    const serverErr = new Error(`Server error ${res.status} on ${path}`);
-    reportNetworkError(serverErr);
-    throw serverErr;
+    reportNetworkError(new Error(`Server error ${res.status} on ${path}`));
+    // Screens show this message as is.
+    throw new Error('Something went wrong on our side. Please try again in a moment.');
   }
 
   let json: T;

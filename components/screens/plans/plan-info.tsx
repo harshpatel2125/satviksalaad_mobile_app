@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { zonesApi } from '@/lib/api';
 import { formatGstRate } from '@/lib/gst';
 import { CACHE_TTL } from '@/lib/query-client';
+import { useWhatsAppOrdering } from '@/lib/whatsapp-ordering';
 import type { Plan } from '@/types/api';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -42,7 +43,7 @@ function facts(plans: Plan[]): { icon: IconName; title: string; text: string }[]
   ];
 }
 
-function questions(plans: Plan[], gstRateBps: number): { q: string; a: string }[] {
+function questions(plans: Plan[], gstRateBps: number, showPayment: boolean): { q: string; a: string }[] {
   const stylePlan = plans.find((p) => p.style_choice);
   const graceDays = plans.length > 0 ? Math.max(...plans.map((p) => p.grace_days)) : 15;
   return [
@@ -50,10 +51,14 @@ function questions(plans: Plan[], gstRateBps: number): { q: string; a: string }[
       q: 'Does my plan renew automatically?',
       a: "No. You pay once for the plan you choose and nothing renews by itself. Buy again whenever you're ready.",
     },
-    {
-      q: 'How do I pay?',
-      a: `At checkout, through Razorpay: UPI (Google Pay, PhonePe, Paytm or any UPI app), debit or credit card, or net banking. The payment page is Razorpay's own, so we never see your card or bank details.${gstRateBps > 0 ? ` Prices are plus ${formatGstRate(gstRateBps)} GST, shown and added at checkout.` : ''}`,
-    },
+    ...(showPayment
+      ? [
+          {
+            q: 'How do I pay?',
+            a: `At checkout, through Razorpay: UPI (Google Pay, PhonePe, Paytm or any UPI app), debit or credit card, or net banking. The payment page is Razorpay's own, so we never see your card or bank details.${gstRateBps > 0 ? ` Prices are plus ${formatGstRate(gstRateBps)} GST, shown and added at checkout.` : ''}`,
+          },
+        ]
+      : []),
     {
       q: 'When do the bowls arrive?',
       a: `Monday to Saturday, ${SLOT_TIMES}. You choose lunch or dinner when you subscribe. ${SUNDAY_NOTE}`,
@@ -96,6 +101,7 @@ interface PlansInfoProps {
 export function PlansInfo({ plans, gstRateBps, onDietConsultation, style }: PlansInfoProps) {
   const { colors, fonts } = useTheme();
   const [openQuestion, setOpenQuestion] = useState<number | null>(null);
+  const whatsappOrdering = useWhatsAppOrdering();
   const { data: zones } = useQuery({ queryKey: ['zones'], queryFn: zonesApi.list, staleTime: CACHE_TTL.plans });
   const zoneList = zones?.data ?? [];
   const regions = [...new Set(zoneList.map((z) => z.region))].map((region) => ({
@@ -110,18 +116,20 @@ export function PlansInfo({ plans, gstRateBps, onDietConsultation, style }: Plan
 
   return (
     <View style={[s.root, style]}>
-      <View style={[s.payCard, { backgroundColor: colors.primaryTint }]}>
-        <Ionicons name="shield-checkmark-outline" size={18} color={colors.primaryDark} />
-        <View style={s.payText}>
-          <Text style={[s.payTitle, { color: colors.primaryDark, fontFamily: fonts.bodySemibold }]}>
-            Secure payment by Razorpay
-          </Text>
-          <Text style={[s.small, { color: colors.primaryDark, fontFamily: fonts.body }]}>
-            UPI · Cards · Net banking
-            {gstRateBps > 0 ? ` · Prices are plus ${formatGstRate(gstRateBps)} GST, added at checkout` : ''}
-          </Text>
+      {whatsappOrdering ? null : (
+        <View style={[s.payCard, { backgroundColor: colors.primaryTint }]}>
+          <Ionicons name="shield-checkmark-outline" size={18} color={colors.primaryDark} />
+          <View style={s.payText}>
+            <Text style={[s.payTitle, { color: colors.primaryDark, fontFamily: fonts.bodySemibold }]}>
+              Secure payment by Razorpay
+            </Text>
+            <Text style={[s.small, { color: colors.primaryDark, fontFamily: fonts.body }]}>
+              UPI · Cards · Net banking
+              {gstRateBps > 0 ? ` · Prices are plus ${formatGstRate(gstRateBps)} GST, added at checkout` : ''}
+            </Text>
+          </View>
         </View>
-      </View>
+      )}
 
       <View style={[s.combo, { backgroundColor: Brand.forest }]}>
         <View style={s.comboHead}>
@@ -172,7 +180,7 @@ export function PlansInfo({ plans, gstRateBps, onDietConsultation, style }: Plan
       <View>
         <Text style={[s.heading, { color: colors.text, fontFamily: fonts.display }]}>Questions</Text>
         <View style={[s.card, { backgroundColor: colors.surface }, CardEdge]}>
-          {questions(plans, gstRateBps).map((item, i) => {
+          {questions(plans, gstRateBps, !whatsappOrdering).map((item, i) => {
             const open = openQuestion === i;
             return (
               <View key={item.q} style={i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
