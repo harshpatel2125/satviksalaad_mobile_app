@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useIsFocused, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AppState,
@@ -238,10 +238,13 @@ export default function HomeScreen() {
   });
 
   const [goalsOpen, setGoalsOpen] = useState(false);
+  const isFocused = useIsFocused();
   const { show: showTrialSheet, dismiss: dismissTrialSheet } = useTrialPopupTrigger(scrollY, trialOffered && !!trialPlan && !goalsOpen);
 
   // Once a day, on the first open or when the app comes back on a new day; never over the trial sheet.
+  // Home stays mounted beneath sign-in and pushed screens, so it also waits until Home is in front.
   useEffect(() => {
+    if (!session || !isFocused) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const check = () => {
       if (showTrialSheet || !goalsPopupDue()) return;
@@ -255,7 +258,7 @@ export default function HomeScreen() {
       clearTimeout(timer);
       sub.remove();
     };
-  }, [showTrialSheet]);
+  }, [showTrialSheet, session, isFocused]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>

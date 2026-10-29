@@ -74,6 +74,9 @@
               "RNFBAnalytics",
               "RNFBCrashlytics"
             ]
+          },
+          "android": {
+            "extraProguardRules": "-keepclassmembers class * {\n  @android.webkit.JavascriptInterface <methods>;\n}\n-keepattributes JavascriptInterface\n-keepattributes *Annotation*\n-dontwarn com.razorpay.**\n-keep class com.razorpay.** { *; }\n-optimizations !method/inlining/*\n-keepclasseswithmembers class * {\n  public void onPayment*(...);\n}"
           }
         }
       ],
@@ -144,7 +147,8 @@
           "supportsBackgroundPlayback": false
         }
       ],
-      "./plugins/with-pod-deployment-target"
+      "./plugins/with-pod-deployment-target",
+      "./plugins/with-phone-portrait"
     ],
     "experiments": {
       "typedRoutes": true,
