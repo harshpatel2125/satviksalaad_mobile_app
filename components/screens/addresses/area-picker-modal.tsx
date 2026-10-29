@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { FlatList, Modal, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/use-top-inset';
 
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { DELIVERY_AREAS } from '@/constants/delivery-areas';
@@ -21,6 +22,7 @@ interface AreaPickerModalProps {
 export function AreaPickerModal({ visible, selectedArea, onSelect, onClose }: AreaPickerModalProps) {
   const { colors, fonts } = useTheme();
   const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const [query, setQuery] = useState('');
   const { data } = useQuery({ queryKey: ['zones'], queryFn: zonesApi.list, staleTime: CACHE_TTL.zones });
   const areas = data?.data?.length ? data.data.map((z) => z.name) : DELIVERY_AREAS;
@@ -31,7 +33,7 @@ export function AreaPickerModal({ visible, selectedArea, onSelect, onClose }: Ar
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={[s.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      <View style={[s.root, { backgroundColor: colors.background, paddingTop: topInset }]}>
         <View style={s.header}>
           <Text style={[s.title, { color: colors.text, fontFamily: fonts.display }]}>Select area</Text>
           <TouchableOpacity onPress={onClose} hitSlop={12} accessibilityLabel="Close">

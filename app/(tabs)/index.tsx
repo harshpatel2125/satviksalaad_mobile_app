@@ -259,11 +259,7 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <StatusBar
-        barStyle={isDark ? "light-content" : "dark-content"}
-        backgroundColor="transparent"
-        translucent
-      />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <HomeHeader
         scrollY={scrollY}

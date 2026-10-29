@@ -143,7 +143,7 @@ export default function MealDetailScreen() {
             onLoad={() => setHeroLoaded(true)}
           />
           {!heroLoaded && (
-            <Skeleton width="100%" height={220} radius={0} style={{ ...StyleSheet.absoluteFillObject }} />
+            <Skeleton width="100%" height={220} radius={0} style={{ ...StyleSheet.absoluteFill }} />
           )}
 
           {/* A scrim rather than a button box keeps the white arrow legible on any photo. */}

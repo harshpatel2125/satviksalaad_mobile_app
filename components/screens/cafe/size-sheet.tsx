@@ -72,7 +72,7 @@ export function SizeSheet({
 const s = StyleSheet.create({
   nameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
   ingredients: { fontSize: FontSize.xs, lineHeight: FontSize.xs * LineHeight.normal },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.45)' },
   sizeSheet: {
     position: 'absolute',
     left: 0,

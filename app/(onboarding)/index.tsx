@@ -563,7 +563,7 @@ export default function OnboardingScreen() {
             colors={grad}
             start={{ x: 0.1, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
           />
           {/* Art wrapper with slide animation */}
           <Animated.View style={[artS.artWrapper, artWrapperStyle]}>
@@ -757,7 +757,7 @@ const s = StyleSheet.create({
 const artS = StyleSheet.create({
   // Art wrapper — fills illus section, more space at top, tighter at bottom
   artWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 36,

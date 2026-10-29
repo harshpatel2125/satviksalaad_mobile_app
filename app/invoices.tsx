@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { EmptyState } from '@/components/ui/empty-state';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInUp, FadeOut } from 'react-native-reanimated';
 import { useQuery } from '@tanstack/react-query';
 
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -176,7 +176,7 @@ export default function InvoicesScreen() {
         {!showSkeleton && (!isError || cachedInvoices !== null) && (
           <Animated.View
             entering={hadNoCache.current
-              ? FadeIn.duration(300).withInitialValues({ transform: [{ translateY: 6 }] })
+              ? FadeInUp.duration(300).withInitialValues({ transform: [{ translateY: 6 }] })
               : undefined}
           >
             {invoices.length === 0 ? (

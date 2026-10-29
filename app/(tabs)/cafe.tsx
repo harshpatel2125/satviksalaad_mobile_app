@@ -4,7 +4,8 @@ import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { ScrollViewInstance } from 'react-native';
+import { useTopInset } from '@/hooks/use-top-inset';
 
 import { Skeleton } from '@/components/skeleton';
 import { BottomActionBar } from '@/components/ui/bottom-action-bar';
@@ -88,7 +89,7 @@ function defaultAddressText(userId: string | undefined): string {
 
 export default function CafeScreen() {
   const { colors, fonts } = useTheme();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const { session, profile } = useAuth();
   const whatsappOrdering = useWhatsAppOrdering();
   const { phone: supportPhone } = useSupportContact();
@@ -138,8 +139,8 @@ export default function CafeScreen() {
     }, []),
   );
 
-  const scrollRef = useRef<ScrollView>(null);
-  const tabsRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
+  const tabsRef = useRef<ScrollViewInstance>(null);
   const listTop = useRef(0);
   const navHeight = useRef(0);
   const sectionTops = useRef<Record<string, number>>({});
@@ -235,7 +236,7 @@ export default function CafeScreen() {
 
   return (
     <View style={[s.root, { backgroundColor: colors.background }]}>
-      <View style={[s.pageHeader, column(), { paddingTop: insets.top + (Platform.OS === 'android' ? 12 : 0) }]}>
+      <View style={[s.pageHeader, column(), { paddingTop: topInset + (Platform.OS === 'android' ? 12 : 0) }]}>
         <Text style={[s.pageEyebrow, { color: colors.primary, fontFamily: fonts.bodySemibold }]}>Pickup or delivery</Text>
         <Text style={[s.pageTitle, { color: colors.text, fontFamily: fonts.display }]}>Our Café</Text>
       </View>

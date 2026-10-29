@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { EmptyState } from '@/components/ui/empty-state';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInUp, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -221,7 +221,7 @@ export default function AddressesScreen() {
           ) : (
             <Animated.View
               entering={hadNoCache.current
-                ? FadeIn.duration(350).withInitialValues({ transform: [{ translateY: 8 }] })
+                ? FadeInUp.duration(350).withInitialValues({ transform: [{ translateY: 8 }] })
                 : undefined}
             >
               {addresses.length === 0 ? (

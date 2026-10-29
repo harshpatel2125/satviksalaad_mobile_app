@@ -9,8 +9,9 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import type { ScrollViewInstance } from "react-native";
 import { Text } from '@/components/ui/text';
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useQuery } from '@tanstack/react-query';
 
 import { BottomActionBar } from "@/components/ui/bottom-action-bar";
@@ -59,7 +60,7 @@ export default function PlansScreen() {
   const { planId: requestedPlanId } = useLocalSearchParams<{ planId?: string }>();
   const { height: windowHeight } = useWindowDimensions();
 
-  const scrollViewRef   = useRef<ScrollView>(null);
+  const scrollViewRef   = useRef<ScrollViewInstance>(null);
   const scheduleLayoutY = useRef(0);
   const currentScrollY  = useRef(0);
   const [scheduleViewed, setScheduleViewed] = useState(false);
@@ -267,7 +268,7 @@ export default function PlansScreen() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ScreenHeader title="Choose your plan" onBack={() => router.back()} />
       <Animated.View
-        entering={FadeIn.duration(350).withInitialValues({
+        entering={FadeInUp.duration(350).withInitialValues({
           transform: [{ translateY: 8 }],
         })}
         style={{ flex: 1 }}

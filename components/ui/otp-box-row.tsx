@@ -1,6 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { Platform, StyleSheet, TextInput, View } from 'react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
+import type { StyleProp, TextInputInstance, ViewStyle } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { useOtpAutoFill } from '@/hooks/useOtpAutoFill';
 import { Brand, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
@@ -32,7 +32,7 @@ export const OtpBoxRow = forwardRef<OtpBoxRowHandle, OtpBoxRowProps>(
 
     // Always-current ref — eliminates stale-closure bug on fast typing
     const digitsRef = useRef<string[]>(Array(length).fill(''));
-    const inputRefs = useRef<(TextInput | null)[]>([]);
+    const inputRefs = useRef<(TextInputInstance | null)[]>([]);
 
     // Keep callback refs fresh so handlers always call the latest parent callbacks
     const onCompleteRef = useRef(onComplete);

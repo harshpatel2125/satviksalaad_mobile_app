@@ -14,6 +14,7 @@ import {
   type LayoutChangeEvent,
   type ViewStyle,
 } from 'react-native';
+import type { ScrollViewInstance, TextInputInstance } from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -184,11 +185,11 @@ export function CheckoutSheet({
   const [openError, setOpenError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
 
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const fieldY = useRef<Partial<Record<OrderField, number>>>({});
-  const nameRef = useRef<TextInput>(null);
-  const phoneRef = useRef<TextInput>(null);
-  const addressRef = useRef<TextInput>(null);
+  const nameRef = useRef<TextInputInstance>(null);
+  const phoneRef = useRef<TextInputInstance>(null);
+  const addressRef = useRef<TextInputInstance>(null);
 
   const delivery = details.fulfilment === 'delivery';
   const hasMrp = lines.some((line) => line.unitPrice === null);
@@ -282,7 +283,7 @@ export function CheckoutSheet({
     const firstInvalid = FIELD_ORDER.find((field) => found[field]);
     if (firstInvalid) {
       scrollRef.current?.scrollTo({ y: Math.max(0, (fieldY.current[firstInvalid] ?? 0) - Spacing[3]) });
-      const inputs: Partial<Record<OrderField, React.RefObject<TextInput | null>>> = {
+      const inputs: Partial<Record<OrderField, React.RefObject<TextInputInstance | null>>> = {
         name: nameRef,
         phone: phoneRef,
         address: addressRef,

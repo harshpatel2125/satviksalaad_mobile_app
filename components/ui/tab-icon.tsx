@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import type { ColorValue } from 'react-native';
 
 import { TAB_ICON_SIZE, TAB_PILL } from '@/constants/tab-bar';
 
@@ -20,13 +21,13 @@ export function TabIcon({
 }: {
   name: IoniconName;
   focusedName: IoniconName;
-  color: string;
+  color: ColorValue;
   focused: boolean;
   pillColor: string;
 }) {
   return (
     <View style={[s.pill, focused && { backgroundColor: pillColor }]}>
-      <Ionicons name={focused ? focusedName : name} size={TAB_ICON_SIZE} color={color} />
+      <Ionicons name={focused ? focusedName : name} size={TAB_ICON_SIZE} color={typeof color === 'string' ? color : undefined} />
     </View>
   );
 }

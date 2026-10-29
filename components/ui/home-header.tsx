@@ -9,7 +9,7 @@ import Animated, {
   useAnimatedStyle,
   type SharedValue,
 } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/use-top-inset';
 
 import { GlassView } from '@/components/glass-view';
 import { Spacing } from '@/constants/theme';
@@ -32,7 +32,7 @@ interface HomeHeaderProps {
 export function HomeHeader({ scrollY, onBellPress, hasBellDot = true }: HomeHeaderProps) {
   const { colors, fonts } = useTheme();
   const { effectiveScheme: scheme } = useThemePreference();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const { profile, cachedName } = useAuth();
 
   // profile.full_name is authoritative; cachedName (MMKV) fills in instantly on second+ opens
@@ -52,7 +52,7 @@ export function HomeHeader({ scrollY, onBellPress, hasBellDot = true }: HomeHead
   }));
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: topInset }]}>
       {/* Background layers are wrapped in their own clipping view so the glass
           effect stays contained without clipping the text content above it. */}
       <View style={[StyleSheet.absoluteFill, styles.backgroundClip]}>

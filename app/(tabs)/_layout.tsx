@@ -1,6 +1,7 @@
 import type { Href } from 'expo-router';
 import { Tabs, usePathname, useRouter } from 'expo-router';
 import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import type { ColorValue } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { runOnJS } from 'react-native-reanimated';
@@ -69,7 +70,7 @@ export default function TabLayout() {
     });
 
   const icon = (name: React.ComponentProps<typeof TabIcon>['name'], focusedName: React.ComponentProps<typeof TabIcon>['focusedName']) =>
-    function Icon({ color, focused }: { color: string; focused: boolean }) {
+    function Icon({ color, focused }: { color: ColorValue; focused: boolean }) {
       return <TabIcon name={name} focusedName={focusedName} color={color} focused={focused} pillColor={c.primaryBg} />;
     };
 

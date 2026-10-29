@@ -66,13 +66,28 @@
   .dev-ipad .head { top: 60px; }
   .dev-ipad h1 { font-size: 64px; }
   .dev-ipad .sub { font-size: 26px; margin-top: 16px; }
-  .dev-duo .head { top: 76px; }
-  .dev-duo h1 { font-size: 68px; }
-  .dev-duo .sub { font-size: 27px; margin-top: 18px; }
-  .dev-ipad .chip, .dev-duo .chip { font-size: 22px; padding: 10px 22px 10px 12px; }
-  .dev-ipad .chip span, .dev-duo .chip span { width: 36px; height: 36px; }
-  .dev-ipad .leaf, .dev-duo .leaf { width: 230px; top: 24px; }
-  .dev-ipad .leaf.r, .dev-duo .leaf.r { width: 180px; top: auto; bottom: 40px; }
+  .dev-ipad .chip { font-size: 22px; padding: 10px 22px 10px 12px; }
+  .dev-ipad .chip span { width: 36px; height: 36px; }
+  .dev-ipad .leaf { width: 230px; top: 24px; }
+  .dev-ipad .leaf.r { width: 180px; top: auto; bottom: 40px; }
+
+  /* iPhone Duo, opened flat in landscape: copy on the left, the device on the right. */
+  .dev-duo .leaf { width: 170px; top: 16px; left: 22px; }
+  .duo-copy { position: absolute; left: 54px; top: 50%; width: 372px; transform: translateY(-50%); }
+  .dev-duo h1 { font-size: 38px; }
+  .dev-duo .sub { font-size: 18px; margin-top: 14px; }
+  .duo-chips { margin-top: 26px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+  .dev-duo .chip { font-size: 17px; padding: 8px 18px 8px 9px; }
+  .dev-duo .chip span { width: 30px; height: 30px; }
+  .duo { position: absolute; right: 32px; top: 50%; width: 600px; height: 429px; margin-top: -214px; border-radius: 24px; padding: 3px;
+         background: linear-gradient(135deg, #d9d6cf, #9d9a93 30%, #e4e1da 55%, #8f8c86); box-shadow: 0 34px 70px rgba(18,33,26,.26); }
+  .duo::before, .duo::after { content: ''; position: absolute; left: 50%; width: 34px; height: 3px; margin-left: -17px; border-radius: 2px; background: #7d7a74; }
+  .duo::before { top: -1px; }
+  .duo::after { bottom: -1px; }
+  .duo-bez { position: relative; width: 100%; height: 100%; border-radius: 21px; background: #0a0a0a; padding: 8px; }
+  .duo .screen { border-radius: 13px; }
+  .crease { position: absolute; top: 8px; bottom: 8px; left: 50%; width: 6px; margin-left: -3px; pointer-events: none;
+            background: linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,.045) 40%, rgba(255,255,255,.07) 55%, rgba(0,0,0,0)); }
 </style>
 </head>
 <body>
@@ -208,7 +223,7 @@
     phone:  { w: 1440, h: 2560, shot: 'phone' },
     iphone: { w: 1206, h: 2622, shot: 'iphone' },
     tablet: { w: 1440, h: 2560, shot: 'tablet', chipsTop: 452, slab: { top: 566, w: 824, h: 1290, r: 46, sr: 22, cls: '' } },
-    duo:    { w: 2007, h: 2853, shot: 'duo', chipsTop: 342, slab: { top: 432, w: 759, h: 1060, r: 48, sr: 24, cls: 'alu', noCam: true } },
+    duo:    { w: 2853, h: 2007, shot: 'duo' },
     ipad:   { w: 2064, h: 2752, shot: 'ipad', chipsTop: 314, slab: { top: 400, w: 762, h: 1000, r: 44, sr: 24, cls: 'alu' } },
   };
 
@@ -249,7 +264,14 @@
     return `${LEAF()}${LEAF('r')}${head(f)}
       <div class="chips" style="top:${dev.chipsTop}px">${f.chips.map(([ic, t]) => `<div class="chip"><span>${icon(ic, 24)}</span>${t}</div>`).join('')}</div>
       <div class="slab ${b.cls}" style="top:${b.top}px;left:${(1080 - b.w) / 2}px;width:${b.w}px;height:${b.h}px;border-radius:${b.r}px">
-        <div class="bezel" style="border-radius:${b.r - 3}px"><div class="screen" style="border-radius:${b.sr}px"><img src="shots/${dev.shot}-${f.key}.jpg" alt=""></div>${b.noCam ? '' : '<div class="cam"></div>'}</div></div>`;
+        <div class="bezel" style="border-radius:${b.r - 3}px"><div class="screen" style="border-radius:${b.sr}px"><img src="shots/${dev.shot}-${f.key}.jpg" alt=""></div><div class="cam"></div></div></div>`;
+  }
+
+  function duoOpen(f, dev) {
+    return `${LEAF()}
+      <div class="duo-copy"><h1>${f.head}<br><em>${f.em}</em></h1><div class="sub">${f.sub}</div>
+        <div class="duo-chips">${f.chips.map(([ic, t]) => `<div class="chip"><span>${icon(ic, 20)}</span>${t}</div>`).join('')}</div></div>
+      <div class="duo"><div class="duo-bez"><div class="screen"><img src="shots/${dev.shot}-${f.key}.jpg" alt=""></div><div class="crease"></div></div></div>`;
   }
 
   const q = new URLSearchParams(location.search);
@@ -258,7 +280,7 @@
   const H = (1080 * dev.h) / dev.w;
   const only = q.get('i');
   if (only !== null) { document.body.classList.add('single'); document.body.style.zoom = dev.w / 1080; }
-  const draw = name === 'phone' ? android : name === 'iphone' ? iphone : slab;
+  const draw = name === 'phone' ? android : name === 'iphone' ? iphone : name === 'duo' ? duoOpen : slab;
   const list = only !== null ? [[FRAMES[+only], +only]] : FRAMES.map((f, i) => [f, i]);
   document.getElementById('root').innerHTML = list
     .map(([f, i]) => `<section class="frame dev-${name} ${f.bg}" style="height:${H}px" id="f${i}">${draw(f, dev, H)}</section>`)

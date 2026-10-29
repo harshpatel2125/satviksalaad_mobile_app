@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/use-top-inset';
 import { useQuery } from '@tanstack/react-query';
 
 import { DeliveryDayCard } from '@/components/screens/deliveries/delivery-day-card';
@@ -41,7 +41,7 @@ function addDays(date: string, n: number): string {
 
 export default function DeliveriesScreen() {
   const { colors, fonts } = useTheme();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const router = useRouter();
   const { session } = useAuth();
   const userId = session?.user?.id ?? null;
@@ -137,7 +137,7 @@ export default function DeliveriesScreen() {
   }
 
   const header = (
-    <View style={[s.header, column(), { backgroundColor: colors.background, paddingTop: insets.top + (Platform.OS === 'android' ? 12 : 0) }]}>
+    <View style={[s.header, column(), { backgroundColor: colors.background, paddingTop: topInset + (Platform.OS === 'android' ? 12 : 0) }]}>
       <Text style={[s.pageTitle, { color: colors.text, fontFamily: fonts.display }]}>Deliveries</Text>
     </View>
   );

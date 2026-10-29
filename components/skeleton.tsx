@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { ViewStyle } from 'react-native';
+import type { DimensionValue, ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -12,7 +12,7 @@ import Animated, {
 import { useTheme } from '@/hooks/use-theme';
 
 interface SkeletonProps {
-  width?: number | string;
+  width?: DimensionValue;
   height?: number;
   radius?: number;
   style?: ViewStyle;
@@ -48,19 +48,10 @@ export function Skeleton({
   const resolvedBase    = baseColor    ?? colors.skeleton;
   const resolvedShimmer = shimmerColor ?? colors.skeletonShimmer;
 
-  const containerStyle = useMemo(() => {
-    const base: ViewStyle = {
-      height,
-      borderRadius: radius,
-      backgroundColor: resolvedBase,
-    };
-    if (typeof width === 'number') {
-      base.width = width;
-    } else {
-      (base as Record<string, unknown>).width = width;
-    }
-    return base;
-  }, [width, height, radius, resolvedBase]);
+  const containerStyle = useMemo<ViewStyle>(
+    () => ({ width, height, borderRadius: radius, backgroundColor: resolvedBase }),
+    [width, height, radius, resolvedBase],
+  );
 
   return (
     <View style={[styles.base, containerStyle, style]}>

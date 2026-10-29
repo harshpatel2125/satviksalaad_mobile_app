@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import type { TextInputInstance } from 'react-native';
 import { Text } from '@/components/ui/text';
 import Animated, {
   Easing,
@@ -75,8 +76,8 @@ export function ProfileCompletionSheet({
   const [switchingToSms, setSwitchingToSms] = useState(false);
 
   const otpRef = useRef<OtpBoxRowHandle>(null);
-  const phoneRef = useRef<TextInput | null>(null);
-  const nameRef = useRef<TextInput | null>(null);
+  const phoneRef = useRef<TextInputInstance | null>(null);
+  const nameRef = useRef<TextInputInstance | null>(null);
 
   const keyboardOffset = useSharedValue(0);
 

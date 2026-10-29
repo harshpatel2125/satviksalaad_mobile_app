@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/use-top-inset';
 
 import { formatDay } from '@/lib/subscription-view';
 import { CardEdge, FontSize, Radius, Spacing } from '@/constants/theme';
@@ -19,6 +20,7 @@ import { useTheme } from '@/hooks/use-theme';
 export default function PaymentSuccessScreen() {
   const { colors, fonts } = useTheme();
   const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { planName, orderId, amountRs, startsOn, endsOn, renewal, unit: unitParam } = useLocalSearchParams<{
@@ -60,7 +62,7 @@ export default function PaymentSuccessScreen() {
   ];
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+    <View style={[styles.root, { backgroundColor: colors.background, paddingTop: topInset }]}>
       <View style={[styles.content, column(NARROW_WIDTH)]}>
         {/* Success icon */}
         <View style={[styles.iconCircle, { backgroundColor: colors.successBg }]}>
