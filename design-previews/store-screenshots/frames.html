@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1080">
+<title>Satvik Store Screenshots</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+  /* Frames are laid out 1080 CSS px wide and zoomed to the store size on export.
+     ?d=phone|tablet|iphone|duo|ipad picks the set, ?i=N shows frame N alone at full size. */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #d9d9d4; font-family: Figtree, sans-serif; }
+  .frame { position: relative; width: 1080px; overflow: hidden; margin: 0 auto 40px; }
+  .single .frame { margin: 0; }
+  .mint  { background: linear-gradient(165deg, #F4F9F5 0%, #E4EFE7 100%); }
+  .cream { background: linear-gradient(165deg, #FDF9EF 0%, #F4EAD2 100%); }
+  .dark  { background: linear-gradient(165deg, #17201B 0%, #070A08 100%); }
+  .dark .leaf { stroke: #3E5A49; }
+  .dark h1 { color: #F2F5F3; }
+  .dark h1 em { color: #7FD4A1; }
+  .dark .sub { color: #A6B3AB; }
+  .dark .callout b { color: #F2F5F3; }
+  .dark .callout p { color: #93A199; }
+  .dark .ic { background: #18211C; border-color: #2B3A31; box-shadow: none; }
+  .dark .ic svg, .dark .chip svg { stroke: #7FD4A1; }
+  .dark .chip { background: #18211C; border-color: #2B3A31; color: #F2F5F3; box-shadow: none; }
+  .dark .chip span { background: #22302A; }
+  .leaf { position: absolute; top: 40px; left: 36px; width: 300px; opacity: .55; }
+  .leaf.r { left: auto; right: 30px; top: auto; bottom: 60px; width: 240px; opacity: .35; transform: scaleX(-1) rotate(20deg); }
+  .head { position: absolute; top: 150px; left: 0; right: 0; text-align: center; padding: 0 70px; }
+  h1 { font-family: "Young Serif", serif; font-weight: 400; font-size: 82px; line-height: 1.06; color: #12211A; letter-spacing: -1px; }
+  h1 em { color: #235C3B; font-style: italic; }
+  .sub { margin-top: 26px; font-size: 33px; line-height: 1.4; color: #4F6158; }
+  .screen { width: 100%; height: 100%; overflow: hidden; background: #FBFBF9; position: relative; }
+  .screen img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+
+  .phone { position: absolute; top: 560px; left: 432px; width: 592px; height: 1300px; border-radius: 66px; background: #121413; padding: 14px; box-shadow: 0 40px 80px rgba(18,33,26,.22), 0 0 0 2px #2b2e2c inset; }
+  .phone .screen { border-radius: 54px; }
+  .hole { position: absolute; top: 22px; left: 50%; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%; background: #0b0b0b; }
+
+  .dev-iphone .head { top: 220px; }
+  .iphone { position: absolute; top: 700px; left: 380px; width: 670px; height: 1419px; border-radius: 98px; padding: 4px; background: linear-gradient(135deg, #9a9d9f, #5b5e60 35%, #8d9092 60%, #45484a); box-shadow: 0 44px 90px rgba(18,33,26,.24); }
+  .iphone .bez { width: 100%; height: 100%; border-radius: 94px; background: #070707; padding: 12px; position: relative; }
+  .iphone .screen { border-radius: 82px; }
+  .island { position: absolute; top: 19px; left: 50%; width: 196px; height: 58px; margin-left: -98px; border-radius: 29px; background: #000; }
+  .btn { position: absolute; right: -5px; width: 5px; border-radius: 0 3px 3px 0; background: #6f7274; }
+
+  .callout { position: absolute; left: 40px; width: 300px; text-align: center; }
+  .ic { width: 92px; height: 92px; border-radius: 50%; background: #fff; margin: 0 auto 14px; display: grid; place-items: center; box-shadow: 0 6px 18px rgba(35,92,59,.14); border: 2px solid #D6E6DA; }
+  .callout b { display: block; font-size: 27px; color: #12211A; font-weight: 700; }
+  .callout p { font-size: 21px; color: #5A6B62; margin-top: 6px; line-height: 1.35; }
+  svg.lines { position: absolute; inset: 0; width: 1080px; pointer-events: none; }
+
+  .chips { position: absolute; left: 0; right: 0; display: flex; justify-content: center; gap: 16px; }
+  .chip { display: flex; align-items: center; gap: 10px; background: #fff; border: 2px solid #D6E6DA; border-radius: 999px; padding: 12px 24px 12px 14px; font-size: 24px; font-weight: 600; color: #12211A; box-shadow: 0 6px 16px rgba(35,92,59,.10); }
+  .chip span { width: 40px; height: 40px; border-radius: 50%; background: #EAF3EC; display: grid; place-items: center; }
+  .slab { position: absolute; padding: 3px; background: linear-gradient(140deg, #6b6f6d, #2a2d2c 40%, #4a4e4c 70%, #1f2120); box-shadow: 0 50px 90px rgba(18,33,26,.25); }
+  .bezel { width: 100%; height: 100%; background: #0d0e0e; padding: 20px; position: relative; }
+  .cam { position: absolute; right: 7px; top: 50%; width: 9px; height: 9px; margin-top: -4px; border-radius: 50%; background: #1d2a33; box-shadow: 0 0 0 2px #050505; }
+  .slab.alu { background: linear-gradient(140deg, #b9bcbe, #77797b 40%, #a7aaac 70%, #5f6264); }
+
+  .dev-tablet .head { top: 112px; }
+  .dev-tablet h1 { font-size: 78px; }
+  .dev-tablet .sub { font-size: 31px; margin-top: 22px; }
+  .dev-ipad .head { top: 60px; }
+  .dev-ipad h1 { font-size: 64px; }
+  .dev-ipad .sub { font-size: 26px; margin-top: 16px; }
+  .dev-duo .head { top: 76px; }
+  .dev-duo h1 { font-size: 68px; }
+  .dev-duo .sub { font-size: 27px; margin-top: 18px; }
+  .dev-ipad .chip, .dev-duo .chip { font-size: 22px; padding: 10px 22px 10px 12px; }
+  .dev-ipad .chip span, .dev-duo .chip span { width: 36px; height: 36px; }
+  .dev-ipad .leaf, .dev-duo .leaf { width: 230px; top: 24px; }
+  .dev-ipad .leaf.r, .dev-duo .leaf.r { width: 180px; top: auto; bottom: 40px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  const ICONS = {
+    plate: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>',
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    leaf: '<path d="M5 19c0-8 6-14 15-15-1 9-7 15-15 15zM5 19l7-7"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    tag: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+    check: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+    flame: '<path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-7 1 1 2 2 3 4 0-3 0-5 0-7z"/>',
+    drop: '<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>',
+    store: '<path d="M4 9 5 4h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
+    bag: '<path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2"/>',
+    play: '<circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/>',
+    yoga: '<circle cx="12" cy="5" r="2"/><path d="M5 21l4-7 3 2 3-2 4 7M7 10h10"/>',
+    list: '<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>',
+    skip: '<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/>',
+    pin: '<path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    doc: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>',
+    target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    bulb: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>',
+    rupee: '<path d="M7 4h10M7 9h10M7 4c6 0 6 10 0 10l7 7"/>',
+    chat: '<path d="M4 5h16v11H9l-5 4z"/>',
+    heart: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
+    grid: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+  };
+  const icon = (n, s = 44) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="#235C3B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]}</svg>`;
+
+  // Callouts: ty = the screen row the line points at, as a fraction of the screen height.
+  // `callouts` fit the Android phone captures (with hand-placed tops, y); `ios` fit the iPhone captures.
+  // Tablet-sized frames use the three chips instead, since the device leaves no side margin.
+  const FRAMES = [
+    { key: 'home', bg: 'mint', head: 'Fresh salads,', em: 'made for your week.', sub: 'Lunch or dinner, on the days you choose.<br>Skip any day, no fuss.',
+      callouts: [ { ic: 'plate', t: 'Your subscription', d: 'Bowls left and valid-till date', ty: .2 },
+                  { ic: 'skip', t: 'Skip a day', d: 'Right up to the cutoff', ty: .46 },
+                  { ic: 'calendar', t: 'Your week ahead', d: 'Every delivery day at a glance', ty: .575 },
+                  { ic: 'leaf', t: "Today's menu", d: 'Salad, soup and juice of the day', ty: .83 } ],
+      ios: [ { ic: 'plate', t: 'Your subscription', d: 'Bowls left and valid-till date', ty: .21 },
+             { ic: 'skip', t: 'Skip a day', d: 'Right up to the cutoff', ty: .515 },
+             { ic: 'calendar', t: 'Your week ahead', d: 'Every delivery day at a glance', ty: .63 },
+             { ic: 'grid', t: 'Quick actions', d: 'Skip, renew, settings, menu', ty: .8 } ],
+      chips: [ ['plate', 'Your subscription'], ['skip', 'Skip any day'], ['leaf', "Today's menu"] ] },
+    { key: 'plans', bg: 'cream', head: 'Pick a plan,', em: 'your way.', sub: 'Weekly or monthly salads, soups and drinks.<br>You choose the days and the slot.',
+      callouts: [ { ic: 'rupee', t: 'Clear prices', d: 'Per bowl, GST shown upfront', ty: .39 },
+                  { ic: 'tag', t: 'Save with monthly', d: 'Lower price per bowl', ty: .44 },
+                  { ic: 'list', t: 'A plan for every goal', d: 'High-protein bowls, gut-friendly soups', ty: .72 },
+                  { ic: 'check', t: 'Review, then pay', d: 'See it all before you order', ty: .935 } ],
+      ios: [ { ic: 'rupee', t: 'Clear prices', d: 'Per bowl, GST shown upfront', ty: .43 },
+             { ic: 'tag', t: 'Save with monthly', d: 'Lower price per bowl', ty: .49 },
+             { ic: 'list', t: 'A plan for every goal', d: 'High-protein bowls, gut-friendly soups', ty: .74 },
+             { ic: 'check', t: 'Review, then pay', d: 'See it all before you order', ty: .935 } ],
+      chips: [ ['rupee', 'Clear prices'], ['list', 'Plans for every goal'], ['sun', 'Lunch or dinner'] ] },
+    { key: 'deliveries', bg: 'mint', head: 'Plans change,', em: 'so can your deliveries.', sub: 'Skip a day or change the time and address,<br>right up to the cutoff.',
+      callouts: [ { ic: 'plate', t: 'Your plan', d: 'Bowls and dates in one line', ty: .15 },
+                  { ic: 'clock', t: 'Days, time, address', d: 'Change them whenever you like', ty: .29 },
+                  { ic: 'calendar', t: 'Coming up', d: 'Every delivery, day by day', ty: .42 },
+                  { ic: 'skip', t: 'Skip a day', d: 'The bowl moves to the end of your plan', ty: .82 } ],
+      ios: [ { ic: 'plate', t: 'Your plan', d: 'Bowls and dates in one line', ty: .17 },
+             { ic: 'clock', t: 'Days, time, address', d: 'Change them whenever you like', ty: .32 },
+             { ic: 'calendar', t: 'Coming up', d: 'Every delivery, day by day', ty: .47 },
+             { ic: 'skip', t: 'Skip a day', d: 'The bowl moves to the end of your plan', ty: .64 } ],
+      chips: [ ['calendar', 'Coming up'], ['clock', 'Change time'], ['skip', 'Skip a day'] ] },
+    { key: 'menu', bg: 'cream', head: 'A different bowl,', em: 'every day.', sub: '100% pure veg, made fresh daily.<br>See the whole week before it arrives.',
+      callouts: [ { ic: 'leaf', t: 'Today at Satvik', d: 'Salad, soup and drink of the day', ty: .19 },
+                  { ic: 'check', t: 'Diet marks', d: 'Vegan, Jain, gluten free', ty: .54 },
+                  { ic: 'flame', t: 'Calories on every bowl', d: 'Know what you eat', ty: .76 } ],
+      ios: [ { ic: 'leaf', t: 'Today at Satvik', d: 'Salad, soup and drink of the day', ty: .2 },
+             { ic: 'check', t: 'Diet marks', d: 'Vegan, Jain, gluten free', ty: .585 },
+             { ic: 'flame', t: 'Calories on every bowl', d: 'Know what you eat', ty: .84 } ],
+      chips: [ ['leaf', '100% pure veg'], ['check', 'Vegan, Jain, gluten free'], ['calendar', 'Week ahead'] ] },
+    { key: 'cafe', bg: 'mint', head: 'Our café,', em: 'in your pocket.', sub: 'Order from the Prahladnagar café<br>for pickup or delivery.',
+      callouts: [ { ic: 'store', t: 'Open now?', d: 'Timings at a glance', ty: .15 },
+                  { ic: 'search', t: 'Search and filter', d: 'Gluten free, Jain, vegan', ty: .26 },
+                  { ic: 'bag', t: 'Add in a tap', d: 'Bowls, wraps, smoothies and more', ty: .47 },
+                  { ic: 'flame', t: 'Calories and protein', d: 'On every dish', ty: .627 } ],
+      ios: [ { ic: 'store', t: 'Open now?', d: 'Timings at a glance', ty: .163 },
+             { ic: 'search', t: 'Search and filter', d: 'Gluten free, Jain, vegan', ty: .285 },
+             { ic: 'bag', t: 'Add in a tap', d: 'Bowls, wraps, smoothies and more', ty: .525 },
+             { ic: 'flame', t: 'Calories and protein', d: 'On every dish', ty: .695 } ],
+      chips: [ ['store', 'Pickup or delivery'], ['search', 'Search and filter'], ['bag', 'Add in a tap'] ] },
+    { key: 'goals', bg: 'cream', head: 'Small goals,', em: 'better habits.', sub: 'Water, yoga, an early dinner.<br>A missed day never resets your streak.',
+      callouts: [ { ic: 'target', t: 'Pick your goals', d: 'Choose 3 to 5, with reminders', ty: .08 },
+                  { ic: 'drop', t: 'Water tracker', d: 'Tap a glass as you drink', ty: .275 },
+                  { ic: 'check', t: 'Tick as you go', d: 'Morning to evening', ty: .42 },
+                  { ic: 'bulb', t: 'Habit of the day', d: 'A small wellness tip, daily', ty: .725 } ],
+      ios: [ { ic: 'target', t: 'Pick your goals', d: 'Choose 3 to 5, with reminders', ty: .086 },
+             { ic: 'drop', t: 'Water tracker', d: 'Tap a glass as you drink', ty: .3 },
+             { ic: 'check', t: 'Tick as you go', d: 'Morning to evening', ty: .46 },
+             { ic: 'bulb', t: 'Habit of the day', d: 'A small wellness tip, daily', ty: .81 } ],
+      chips: [ ['target', 'Daily goals'], ['drop', 'Water tracker'], ['flame', 'Gentle streaks'] ] },
+    { key: 'diet', bg: 'mint', head: 'Your diet,', em: 'planned with care.', sub: '1:1 consultation with our founder<br>and clinical dietitian.',
+      callouts: [ { ic: 'user', t: 'Our founder', d: 'Clinical dietitian Divya Agrawal', ty: .35 },
+                  { ic: 'chat', t: 'Book on WhatsApp', d: 'A quick chat to get started', ty: .51 },
+                  { ic: 'heart', t: 'Built around you', d: 'Your routine, your goals', ty: .65 } ],
+      ios: [ { ic: 'user', t: 'Our founder', d: 'Clinical dietitian Divya Agrawal', ty: .42 },
+             { ic: 'chat', t: 'Book on WhatsApp', d: 'A quick chat to get started', ty: .57 },
+             { ic: 'heart', t: 'Built around you', d: 'Your routine, your goals', ty: .74 } ],
+      chips: [ ['heart', 'Built around you'], ['chat', 'Book on WhatsApp'], ['list', 'Flexible packages'] ] },
+    { key: 'profile', bg: 'cream', head: 'Everything,', em: 'in one place.', sub: 'Your plan, invoices, addresses and goals,<br>all under Profile.',
+      callouts: [ { ic: 'plate', t: 'Bowls left', d: 'Always up to date', ty: .38 },
+                  { ic: 'doc', t: 'Invoices', d: 'Every payment on record', ty: .54 },
+                  { ic: 'calendar', t: 'Your preferences', d: 'Goals, schedule, notifications', ty: .69 } ],
+      ios: [ { ic: 'plate', t: 'Bowls left', d: 'Always up to date', ty: .41 },
+             { ic: 'doc', t: 'Invoices', d: 'Every payment on record', ty: .61 },
+             { ic: 'calendar', t: 'Your preferences', d: 'Goals, schedule, notifications', ty: .77 } ],
+      chips: [ ['doc', 'Invoices'], ['pin', 'Saved addresses'], ['user', 'Your preferences'] ] },
+    { key: 'videos', bg: 'mint', head: 'Eat well,', em: 'move well.', sub: 'Yoga, fitness and nutrition videos,<br>right next to your meals.',
+      callouts: [ { ic: 'yoga', t: 'Yoga and fitness', d: 'Filter by what you need', ty: .14 },
+                  { ic: 'play', t: 'Featured each week', d: 'Short, practical videos', ty: .29 },
+                  { ic: 'leaf', t: 'Nutrition tips', d: 'From the Satvik team', ty: .69 } ],
+      ios: [ { ic: 'yoga', t: 'Yoga and fitness', d: 'Filter by what you need', ty: .14 },
+             { ic: 'play', t: 'Featured each week', d: 'Short, practical videos', ty: .29 },
+             { ic: 'leaf', t: 'Nutrition tips', d: 'From the Satvik team', ty: .665 } ],
+      chips: [ ['yoga', 'Yoga'], ['play', 'Fitness'], ['leaf', 'Nutrition'] ] },
+    { key: 'dark', bg: 'dark', head: 'Easy on the eyes,', em: 'day or night.', sub: 'A classic black theme for late evenings.<br>Pick light, dark or follow your phone.',
+      callouts: [ { ic: 'sun', t: 'Light or dark', d: 'Or follow your phone', ty: .2 },
+                  { ic: 'calendar', t: 'Works the same', d: 'Skip, renew and more', ty: .46 },
+                  { ic: 'leaf', t: 'Easy at night', d: 'Gentle on the eyes', ty: .7 } ],
+      ios: [ { ic: 'sun', t: 'Light or dark', d: 'Or follow your phone', ty: .2 },
+             { ic: 'calendar', t: 'Works the same', d: 'Skip, renew and more', ty: .47 },
+             { ic: 'leaf', t: 'Easy at night', d: 'Gentle on the eyes', ty: .71 } ],
+      chips: [ ['sun', 'Light or dark'], ['check', 'Follows your phone'], ['leaf', 'Easy at night'] ] },
+  ];
+
+  // w × h = the exported store size. Slab boxes are in 1080-wide layout px.
+  const DEVICES = {
+    phone:  { w: 1440, h: 2560, shot: 'phone' },
+    iphone: { w: 1206, h: 2622, shot: 'iphone' },
+    tablet: { w: 1440, h: 2560, shot: 'tablet', chipsTop: 452, slab: { top: 566, w: 824, h: 1290, r: 46, sr: 22, cls: '' } },
+    duo:    { w: 2007, h: 2853, shot: 'duo', chipsTop: 342, slab: { top: 432, w: 759, h: 1060, r: 48, sr: 24, cls: 'alu', noCam: true } },
+    ipad:   { w: 2064, h: 2752, shot: 'ipad', chipsTop: 314, slab: { top: 400, w: 762, h: 1000, r: 44, sr: 24, cls: 'alu' } },
+  };
+
+  const LEAF = (cls = '') => `<svg class="leaf ${cls}" viewBox="0 0 200 200" fill="none" stroke="#7FA88C" stroke-width="2.2"><path d="M30 170C40 90 100 40 180 30c-10 80-60 140-150 140z"/><path d="M30 170 120 80M70 130l-10-40M95 105l30-10M60 140l-30-5"/></svg>`;
+  const head = (f) => `<div class="head"><h1>${f.head}<br><em>${f.em}</em></h1><div class="sub">${f.sub}</div></div>`;
+
+  function calloutLayer(callouts, box, H) {
+    const { left, sy, sh, minY, ink = '#235C3B' } = box;
+    // Each callout sits level with its row, pushed apart just enough not to overlap.
+    const gap = 270, maxY = H - 260;
+    const ys = callouts.map((c) => c.y ?? sy + sh * c.ty - 46);
+    ys.forEach((y, i) => { ys[i] = Math.max(y, i ? ys[i - 1] + gap : minY); });
+    for (let i = ys.length - 1; i >= 0; i--) ys[i] = Math.min(ys[i], i === ys.length - 1 ? maxY : ys[i + 1] - gap);
+    const placed = callouts.map((c, i) => ({ ...c, y: c.y ?? Math.round(ys[i]) }));
+    const lines = placed.map((c) => {
+      const x1 = 320, y1 = c.y + 46, x2 = left - 2, y2 = sy + sh * c.ty;
+      return `<path d="M${x1} ${y1} L${x2} ${y2}" stroke="${ink}" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round" fill="none"/><circle cx="${x2}" cy="${y2}" r="9" fill="${ink}"/><circle cx="${x2}" cy="${y2}" r="16" fill="none" stroke="${ink}" stroke-opacity=".35" stroke-width="3"/>`;
+    }).join('');
+    return `<svg class="lines" style="height:${H}px" viewBox="0 0 1080 ${H}">${lines}</svg>
+      ${placed.map((c) => `<div class="callout" style="top:${c.y}px"><div class="ic">${icon(c.ic)}</div><b>${c.t}</b><p>${c.d}</p></div>`).join('')}`;
+  }
+
+  function android(f, dev, H) {
+    return `${LEAF()}${head(f)}
+      <div class="phone"><div class="screen"><img src="shots/${dev.shot}-${f.key}.jpg" alt=""><div class="hole"></div></div></div>
+      ${calloutLayer(f.callouts, { left: 432, sy: 574, sh: 1272, minY: 600 }, H)}`;
+  }
+
+  function iphone(f, dev, H) {
+    return `${LEAF()}${head(f)}
+      <div class="iphone"><div class="btn" style="top:330px;height:150px"></div><div class="btn" style="top:560px;height:80px"></div>
+        <div class="bez"><div class="screen"><img src="shots/${dev.shot}-${f.key}.jpg" alt=""><div class="island"></div></div></div></div>
+      ${calloutLayer(f.ios, { left: 380, sy: 716, sh: 1387, minY: 600, ink: f.bg === 'dark' ? '#7FD4A1' : '#235C3B' }, H)}`;
+  }
+
+  function slab(f, dev) {
+    const b = dev.slab;
+    return `${LEAF()}${LEAF('r')}${head(f)}
+      <div class="chips" style="top:${dev.chipsTop}px">${f.chips.map(([ic, t]) => `<div class="chip"><span>${icon(ic, 24)}</span>${t}</div>`).join('')}</div>
+      <div class="slab ${b.cls}" style="top:${b.top}px;left:${(1080 - b.w) / 2}px;width:${b.w}px;height:${b.h}px;border-radius:${b.r}px">
+        <div class="bezel" style="border-radius:${b.r - 3}px"><div class="screen" style="border-radius:${b.sr}px"><img src="shots/${dev.shot}-${f.key}.jpg" alt=""></div>${b.noCam ? '' : '<div class="cam"></div>'}</div></div>`;
+  }
+
+  const q = new URLSearchParams(location.search);
+  const name = DEVICES[q.get('d')] ? q.get('d') : 'phone';
+  const dev = DEVICES[name];
+  const H = (1080 * dev.h) / dev.w;
+  const only = q.get('i');
+  if (only !== null) { document.body.classList.add('single'); document.body.style.zoom = dev.w / 1080; }
+  const draw = name === 'phone' ? android : name === 'iphone' ? iphone : slab;
+  const list = only !== null ? [[FRAMES[+only], +only]] : FRAMES.map((f, i) => [f, i]);
+  document.getElementById('root').innerHTML = list
+    .map(([f, i]) => `<section class="frame dev-${name} ${f.bg}" style="height:${H}px" id="f${i}">${draw(f, dev, H)}</section>`)
+    .join('');
+</script>
+</body>
+</html>

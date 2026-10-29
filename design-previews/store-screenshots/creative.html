@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920">
+<title>Satvik Store Creative</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+  /* App Store assets are laid out at half size and exported at device scale 2 (header 3840×1646, search 3840×2560).
+     The Play feature graphic is laid out at 1024×500 and exported at scale 2, then downsized.
+     ?a=header|search|feature shows one asset alone; ?safe=1 outlines the art safe area. */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #d9d9d4; font-family: Figtree, sans-serif; }
+  .asset { position: relative; overflow: hidden; margin: 0 auto 40px;
+           background: radial-gradient(ellipse 75% 95% at 50% 45%, #2D6C48 0%, #1F4E34 55%, #153723 100%); }
+  .single .asset { margin: 0; }
+  .safe { position: absolute; outline: 3px dashed #e5484d; pointer-events: none; z-index: 9; }
+  .lineleaf { position: absolute; opacity: .13; }
+  .bowl { position: absolute; border-radius: 50%; border: 6px solid #F7F2E6; background-repeat: no-repeat; box-shadow: 0 24px 50px rgba(0,0,0,.35); }
+
+  .copy { position: absolute; display: flex; flex-direction: column; }
+  .copy.center { left: 0; right: 0; align-items: center; text-align: center; }
+  .copy img.logo { display: block; height: auto; }
+  h1 { font-family: "Young Serif", serif; font-weight: 400; line-height: 1.08; letter-spacing: -1px; color: #F7F2E6; }
+  h1 em { font-style: italic; color: #A8D5B5; }
+
+  .chips { display: flex; gap: 12px; }
+  .chip { display: flex; align-items: center; gap: 8px; background: rgba(247,242,230,.10); border: 2px solid rgba(247,242,230,.28); border-radius: 999px; padding: 7px 16px 7px 8px; font-size: 18px; font-weight: 600; color: #F7F2E6; }
+  .chip span { width: 28px; height: 28px; border-radius: 50%; background: rgba(168,213,181,.22); display: grid; place-items: center; }
+
+  .iphone { position: absolute; width: 470px; height: 1012px; border-radius: 72px; padding: 3px; transform-origin: top left;
+            background: linear-gradient(135deg, #b4b7b9, #6b6e70 35%, #a2a5a7 60%, #55585a); box-shadow: 0 50px 90px rgba(0,0,0,.45); }
+  .iphone .bez { width: 100%; height: 100%; border-radius: 69px; background: #070707; padding: 9px; position: relative; }
+  .iphone .screen { width: 100%; height: 100%; border-radius: 60px; overflow: hidden; position: relative; background: #FBFBF9; }
+  .iphone .screen img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+  .island { position: absolute; top: 13px; left: 50%; width: 138px; height: 41px; margin-left: -69px; border-radius: 21px; background: #000; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  // fx/fy = centre of the food as a fraction of the photo; fd = how many photo px across the circle shows.
+  const PHOTOS = {
+    sprout: { src: 'sprout-protein-bowl', w: 1067, h: 1600, fx: .45, fy: .63, fd: 760 },
+    pesto: { src: 'pesto-noodle-bowl', w: 1600, h: 1067, fx: .53, fy: .53, fd: 900 },
+    burrito: { src: 'mexican-burrito-bowl', w: 900, h: 1600, fx: .5, fy: .56, fd: 700 },
+    kiwi: { src: 'kiwi-melon-crush', w: 1200, h: 1600, fx: .5, fy: .47, fd: 980 },
+    toast: { src: 'cream-cheese-mushroom-toast', w: 900, h: 1600, fx: .58, fy: .56, fd: 640 },
+  };
+  function bowl(key, cx, cy, d) {
+    const p = PHOTOS[key], k = d / p.fd;
+    return `<div class="bowl" style="left:${cx - d / 2}px;top:${cy - d / 2}px;width:${d}px;height:${d}px;background-image:url(photos/${p.src}.webp);background-size:${p.w * k}px ${p.h * k}px;background-position:${d / 2 - p.fx * p.w * k}px ${d / 2 - p.fy * p.h * k}px"></div>`;
+  }
+  const ICONS = {
+    leaf: '<path d="M5 19c0-8 6-14 15-15-1 9-7 15-15 15zM5 19l7-7"/>',
+    target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    skip: '<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/>',
+  };
+  const icon = (n) => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A8D5B5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]}</svg>`;
+  const LEAF = (style) => `<svg class="lineleaf" style="${style}" viewBox="0 0 200 200" fill="none" stroke="#A8D5B5" stroke-width="2"><path d="M30 170C40 90 100 40 180 30c-10 80-60 140-150 140z"/><path d="M30 170 120 80M70 130l-10-40M95 105l30-10M60 140l-30-5"/></svg>`;
+  const phone = (shot, left, top, scale) => `<div class="iphone" style="left:${left}px;top:${top}px;transform:scale(${scale})"><div class="bez"><div class="screen"><img src="shots/iphone-${shot}.jpg" alt=""><div class="island"></div></div></div></div>`;
+
+  // Safe areas follow Apple's templates (in layout px); the feature graphic keeps its copy in the middle.
+  const ASSETS = {
+    header: { w: 1920, h: 823, safe: [548.5, 246.5, 823, 330.5], html: () => `
+      ${LEAF('left:700px;top:-70px;width:240px;transform:rotate(-20deg)')}
+      ${LEAF('right:680px;bottom:-80px;width:230px;transform:scaleX(-1) rotate(10deg)')}
+      ${bowl('kiwi', 70, 730, 230)}
+      ${bowl('sprout', 270, 300, 420)}
+      ${bowl('burrito', 470, 650, 300)}
+      ${bowl('pesto', 1660, 290, 440)}
+      ${bowl('toast', 1440, 660, 280)}
+      <div class="copy center" style="top:275px"><img class="logo" src="photos/logo-cream.png" style="width:320px" alt="Satvik Salaad">
+        <h1 style="margin-top:22px;font-size:54px">Fresh salads,<br><em>made for your week.</em></h1></div>` },
+    search: { w: 1920, h: 1280, safe: [418, 382.5, 1084, 515], html: () => `
+      ${LEAF('left:520px;top:-40px;width:220px;transform:rotate(-15deg)')}
+      ${LEAF('right:560px;bottom:-60px;width:220px;transform:scaleX(-1) rotate(10deg)')}
+      ${bowl('sprout', 140, 150, 380)}
+      ${bowl('burrito', 200, 1140, 360)}
+      ${bowl('toast', 1810, 140, 270)}
+      ${bowl('pesto', 1820, 1090, 470)}
+      <div class="copy" style="left:440px;top:466px;width:540px"><img class="logo" src="photos/logo-cream.png" style="width:270px" alt="Satvik Salaad">
+        <h1 style="margin-top:26px;font-size:64px">Fresh salads,<br><em>on your days.</em></h1>
+        <div class="chips" style="margin-top:26px"><div class="chip"><span>${icon('leaf')}</span>100% pure veg</div><div class="chip"><span>${icon('skip')}</span>Skip any day</div><div class="chip"><span>${icon('target')}</span>Daily goals</div></div></div>
+      ${phone('goals', 1330, 250, .68)}
+      ${phone('home', 1030, 300, .75)}` },
+    feature: { w: 1024, h: 500, safe: [262, 110, 500, 280], html: () => `
+      ${LEAF('left:380px;top:-60px;width:150px;transform:rotate(-20deg)')}
+      ${LEAF('right:330px;bottom:-60px;width:140px;transform:scaleX(-1) rotate(10deg)')}
+      ${bowl('kiwi', 40, 470, 150)}
+      ${bowl('sprout', 150, 170, 250)}
+      ${bowl('burrito', 200, 420, 170)}
+      ${bowl('pesto', 880, 160, 260)}
+      ${bowl('toast', 820, 410, 170)}
+      <div class="copy center" style="top:144px"><img class="logo" src="photos/logo-cream.png" style="width:260px" alt="Satvik Salaad">
+        <h1 style="margin-top:16px;font-size:40px">Fresh salads,<br><em>made for your week.</em></h1></div>` },
+  };
+
+  const q = new URLSearchParams(location.search);
+  const only = ASSETS[q.get('a')] ? q.get('a') : null;
+  if (only) document.body.classList.add('single');
+  document.getElementById('root').innerHTML = (only ? [only] : Object.keys(ASSETS)).map((k) => {
+    const a = ASSETS[k], [x, y, w, h] = a.safe;
+    const safe = q.get('safe') === '1' ? `<div class="safe" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"></div>` : '';
+    return `<section class="asset" style="width:${a.w}px;height:${a.h}px">${a.html()}${safe}</section>`;
+  }).join('');
+</script>
+</body>
+</html>
