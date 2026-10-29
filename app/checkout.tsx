@@ -4,7 +4,9 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -22,6 +24,7 @@ import { column } from '@/constants/layout';
 import { useAlert } from '@/context/alert';
 import { useAuth } from '@/context/auth';
 import { ApiError, addressesApi, authHeader, ordersApi, paymentsApi, plansApi, subscriptionsApi } from '@/lib/api';
+import { readRazorpayError } from '@/lib/razorpay-error';
 import { addGst, formatGstRate, rupeesFromPaise } from '@/lib/gst';
 import { readAddressesCache } from '@/lib/home-cache';
 import { queryClient } from '@/lib/query-client';
@@ -407,21 +410,16 @@ export default function CheckoutScreen() {
         showAlert("Can't buy this plan", err.message, [{ text: 'See plans', onPress: () => router.back() }]);
         return;
       }
-      // Razorpay SDK rejects with { code, description } on cancel (code 2) or failure.
-      // Don't show an error alert when the user deliberately closes the payment sheet.
-      const razorpayErr = err as { code?: number; description?: string };
-      const isCancelled = razorpayErr.code === 2 ||
-        razorpayErr.description?.toLowerCase().includes('cancel') ||
-        razorpayErr.description?.toLowerCase().includes('dismissed');
-      if (isCancelled) {
+      // Closing the payment sheet is not an error worth an alert.
+      const failure = readRazorpayError(err);
+      if (failure.cancelled) {
         trackPaymentCancelled(plan.id, Math.round(finalAmountPaise / 100));
         if (orderId) paymentsApi.cancelOrder(orderId).catch(() => {});
       } else {
-        const reason = razorpayErr.description ?? (err instanceof Error ? err.message : 'unknown');
-        trackPaymentFailed(plan.id, Math.round(finalAmountPaise / 100), reason);
+        trackPaymentFailed(plan.id, Math.round(finalAmountPaise / 100), err instanceof Error ? err.message : failure.reason);
         // Before the payment sheet nothing was paid, and an open order would block the retry.
         if (orderId && !sheetOpened) paymentsApi.cancelOrder(orderId).catch(() => {});
-        showAlert('Payment failed', razorpayErr.description ?? (err instanceof Error ? err.message : 'Payment failed. Please try again.'));
+        showAlert('Payment failed', err instanceof Error ? err.message : failure.message);
       }
     } finally {
       setPaying(false);
@@ -438,7 +436,10 @@ export default function CheckoutScreen() {
   const planEmoji = plan?.category === 'fruit' ? '🍎' : '🥗';
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <ScreenHeader title="Review Order" onBack={() => router.back()} />
 
       <ScrollView
@@ -1434,7 +1435,7 @@ export default function CheckoutScreen() {
         needsPhone={needsPhone}
         needsName={needsName}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

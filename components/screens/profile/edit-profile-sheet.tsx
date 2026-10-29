@@ -228,7 +228,7 @@ export function EditProfileSheet({
     >
       <KeyboardAvoidingView
         style={[s.root, { backgroundColor: colors.background }]}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {/* Only iOS presents this as a card; Android shows it full screen. */}
         {Platform.OS === "ios" ? <View style={[s.grabber, { backgroundColor: colors.border }]} /> : null}

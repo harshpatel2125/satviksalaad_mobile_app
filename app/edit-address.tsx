@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -109,7 +111,10 @@ export default function EditAddress() {
   }
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <ScreenHeader title="Edit address" onBack={() => router.back()} />
 
       <ScrollView
@@ -238,7 +243,7 @@ export default function EditAddress() {
         onSelect={(area) => { setSelectedArea(area); setAreaError(null); }}
         onClose={() => setShowAreaPicker(false)}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

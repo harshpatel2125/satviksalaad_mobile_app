@@ -23,6 +23,7 @@ import { Text } from '@/components/ui/text';
 import { Brand, CardEdge, FontSize, LineHeight, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, cafeApi } from '@/lib/api';
+import { readRazorpayError } from '@/lib/razorpay-error';
 import {
   buildOrderMessage,
   formatClock,
@@ -249,9 +250,8 @@ export function CheckoutSheet({
     } catch (err) {
       // Closing the payment sheet rejects too; either way nothing was charged.
       cafeApi.cancel(started.orderId, started.razorpayOrderId).catch(() => {});
-      const description = (err as { code?: number; description?: string }).description ?? '';
-      const cancelled = (err as { code?: number }).code === 2 || /cancel|dismiss/i.test(description);
-      if (!cancelled) setOpenError(description || 'Payment failed. Please try again.');
+      const failure = readRazorpayError(err);
+      if (!failure.cancelled) setOpenError(failure.message);
       setPaying(false);
       return;
     }
@@ -307,7 +307,7 @@ export function CheckoutSheet({
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={[s.sheet, { backgroundColor: colors.background }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Only iOS presents this as a card; Android shows it full screen. */}
         {Platform.OS === 'ios' ? <View style={[s.grabber, { backgroundColor: colors.border }]} /> : null}
@@ -510,7 +510,7 @@ export function CheckoutSheet({
                 ? 'Delivery orders are paid in advance: we confirm your order and the delivery charge on WhatsApp and share the payment details.'
                 : payOnline
                   ? "Paid online in advance: UPI, cards or net banking, through Razorpay. You'll get an order number to show at the counter."
-                  : `${onlineBlock ? `${onlineBlock} ` : ''}We confirm your order on WhatsApp and share the payment details. Please pay in advance, before you collect.`}
+                  : `${onlineBlock ? `${onlineBlock} ` : ''}We confirm your order on WhatsApp and share the payment details. We get your order ready once the payment is done.`}
             </Text>
 
             {delivery ? (

@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -107,7 +109,10 @@ export default function AddAddress() {
   }
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <ScreenHeader title="Add address" onBack={() => router.back()} />
 
       <ScrollView
@@ -238,7 +243,7 @@ export default function AddAddress() {
         onSelect={(area) => { setSelectedArea(area); setAreaError(null); }}
         onClose={() => setShowAreaPicker(false)}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

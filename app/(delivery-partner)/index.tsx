@@ -4,6 +4,8 @@ import {
   ActivityIndicator,
   FlatList,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -260,7 +262,10 @@ export default function DeliveryPartnerHomeScreen() {
   }
 
   return (
-    <View style={[styles.container, column(), { backgroundColor: colors.background, paddingTop: insets.top + Spacing[3] }]}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={[styles.container, column(), { backgroundColor: colors.background, paddingTop: insets.top + Spacing[3] }]}
+    >
       {/* Covers the header only: wrapping the FlatList in a tap-to-dismiss view
           competes with its scroll gesture and stalls scrolling. */}
       <Pressable onPress={Keyboard.dismiss}>
@@ -462,6 +467,7 @@ export default function DeliveryPartnerHomeScreen() {
       ) : (
         <FlatList
           data={displayItems}
+          keyboardShouldPersistTaps="handled"
           keyExtractor={(i) => i.id}
           renderItem={({ item, index }) => (
             <DeliveryRow
@@ -498,7 +504,7 @@ export default function DeliveryPartnerHomeScreen() {
           }
         />
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

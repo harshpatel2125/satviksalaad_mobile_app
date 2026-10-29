@@ -265,7 +265,6 @@ export default function CafeScreen() {
             onScroll={(e) => trackSection(e.nativeEvent.contentOffset.y)}
             scrollEventThrottle={32}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[column(), { paddingBottom: Spacing[6] }]}
           >
