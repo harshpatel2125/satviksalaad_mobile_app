@@ -2,7 +2,7 @@
   "expo": {
     "name": "Satvik Salaad",
     "slug": "satviksalaad",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/logo/icon.png",
     "scheme": "satviksalaad",
@@ -34,7 +34,6 @@
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/logo/adaptive-icon.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "intentFilters": [
         {
@@ -115,7 +114,14 @@
           "sounds": []
         }
       ],
-      "@react-native-firebase/app",
+      [
+        "@react-native-firebase/app",
+        {
+          "ios": {
+            "disableSPM": true
+          }
+        }
+      ],
       "@react-native-firebase/crashlytics",
       [
         "@hot-updater/expo",

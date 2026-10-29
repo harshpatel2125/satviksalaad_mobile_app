@@ -1479,7 +1479,7 @@ const styles = StyleSheet.create({
 
   // Plan banner
   planBanner: { borderRadius: Radius.xl, overflow: "hidden" },
-  planBannerOverlay: { ...StyleSheet.absoluteFillObject },
+  planBannerOverlay: { ...StyleSheet.absoluteFill },
   planBannerContent: {
     flexDirection: "row",
     alignItems: "center",

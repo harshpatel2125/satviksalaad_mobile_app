@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { EmptyState } from '@/components/ui/empty-state';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInUp, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -256,7 +256,7 @@ export default function DeliveryHistoryScreen() {
 
         {/* Empty + Grouped list */}
         {!loading && (
-          <Animated.View entering={FadeIn.duration(350).withInitialValues({ transform: [{ translateY: 8 }] })}>
+          <Animated.View entering={FadeInUp.duration(350).withInitialValues({ transform: [{ translateY: 8 }] })}>
             {filtered.length === 0 && (
               <EmptyState
                 icon="time-outline"

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/use-top-inset';
 
 import { Text } from '@/components/ui/text';
 import { column, READING_WIDTH } from '@/constants/layout';
@@ -47,12 +47,12 @@ export function ScreenHeader({
   maxWidth = READING_WIDTH,
 }: ScreenHeaderProps) {
   const { colors, fonts } = useTheme();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
 
   return (
     <View
       style={{
-        paddingTop: insets.top + (Platform.OS === "android" ? 12 : 0),
+        paddingTop: topInset + (Platform.OS === "android" ? 12 : 0),
         backgroundColor: colors.background,
       }}
     >

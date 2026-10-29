@@ -28,7 +28,8 @@ export default function PolicyWebViewScreen() {
   const title = Array.isArray(rawParams.title) ? (rawParams.title[0] ?? 'Policy')               : (rawParams.title ?? 'Policy');
   const { colors } = useTheme();
   const router = useRouter();
-  const webViewRef = useRef<WebView>(null);
+  // The package types its extra props as `undefined` by default, which TypeScript 6 reduces to never.
+  const webViewRef = useRef<WebView<object>>(null);
 
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -81,7 +82,7 @@ export default function PolicyWebViewScreen() {
       )}
 
       {/* WebView */}
-      <WebView
+      <WebView<object>
         ref={webViewRef}
         source={{ uri: url }}
         style={[styles.webview, { backgroundColor: colors.background }]}
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
   webview: { flex: 1 },
 
   loader: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

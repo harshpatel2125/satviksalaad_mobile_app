@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { Text } from "@/components/ui/text";
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/use-top-inset';
 import { useQuery } from "@tanstack/react-query";
 import { EditProfileSheet } from '@/components/screens/profile/edit-profile-sheet';
 import { ProfileHeader } from '@/components/screens/profile/profile-header';
@@ -76,7 +76,7 @@ function subscriptionSummary(
 export default function ProfileScreen() {
   const { colors, fonts } = useTheme();
   const { showAlert } = useAlert();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const { profile, user, signOut, refreshProfile } = useAuth();
   const router = useRouter();
 
@@ -204,7 +204,7 @@ export default function ProfileScreen() {
           column(),
           {
             backgroundColor: colors.background,
-            paddingTop: insets.top + (Platform.OS === "android" ? 12 : 0),
+            paddingTop: topInset + (Platform.OS === "android" ? 12 : 0),
           },
         ]}
       >

@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { EmptyState } from '@/components/ui/empty-state';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { FadeIn, FadeInUp, FadeOut } from 'react-native-reanimated';
+import { useTopInset } from '@/hooks/use-top-inset';
 import { useQuery } from '@tanstack/react-query';
 
 import { MenuSkeleton } from '@/components/skeletons/menu-skeleton';
@@ -56,7 +56,7 @@ const FALLBACK_NAMES: Record<string, string> = { salad: 'Salads', fruit: 'Fruit 
 
 export default function MenuScreen() {
   const { colors, fonts } = useTheme();
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const gridWidth = Math.min(width, WIDE_WIDTH) - Spacing[5] * 2;
@@ -168,7 +168,7 @@ export default function MenuScreen() {
           s.header,
           column(WIDE_WIDTH),
           {
-            paddingTop: insets.top + (Platform.OS === "android" ? 12 : 0),
+            paddingTop: topInset + (Platform.OS === "android" ? 12 : 0),
             backgroundColor: colors.background,
           },
         ]}
@@ -235,7 +235,7 @@ export default function MenuScreen() {
       ) : (
         <Animated.View
           entering={hadNoCache.current
-            ? FadeIn.duration(350).withInitialValues({ transform: [{ translateY: 8 }] })
+            ? FadeInUp.duration(350).withInitialValues({ transform: [{ translateY: 8 }] })
             : undefined}
           style={{ flex: 1 }}
         >
